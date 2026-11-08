@@ -18,6 +18,23 @@ def test_speak_dry_run_returns_wav():
     assert audio[:4] == b"RIFF"                # every WAV file starts with RIFF
 
 
-def test_generate_answer_dry_run():
-    assert generate_answer("Who can apply?", [], "en").startswith("Eligible")
-    assert generate_answer("What is the weather?", [], "en") == "NO_ANSWER"
+def test_generate_answer_dry_run_uses_chunk_text():
+    chunks = [{
+        "chunk_id": "T_0",
+        "lang": "en",
+        "text": "Eligible farmer families receive six thousand rupees per year. Money comes in three instalments.",
+    }]
+    answer = generate_answer("Who can apply?", chunks, "en")
+    assert answer == "Eligible farmer families receive six thousand rupees per year."
+
+
+def test_generate_answer_dry_run_prefers_same_language():
+    chunks = [
+        {"chunk_id": "T_en", "lang": "en", "text": "English sentence one. English sentence two."},
+        {"chunk_id": "T_hi", "lang": "hi", "text": "हिंदी वाक्य एक। हिंदी वाक्य दो।"},
+    ]
+    assert generate_answer("पात्रता क्या है?", chunks, "hi") == "हिंदी वाक्य एक।"
+
+
+def test_generate_answer_dry_run_no_chunks():
+    assert generate_answer("Who can apply?", [], "en") == "NO_ANSWER"
