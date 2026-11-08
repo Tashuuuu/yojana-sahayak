@@ -1,0 +1,99 @@
+{
+    "total_questions": 7,
+    "top_k": 3,
+    "hit_at_3": 0.8571428571428571,
+    "mrr": 0.7857142857142857,
+    "details": [
+        {
+            "question": "How much money do farmers receive under PM KISAN?",
+            "relevant_chunk_ids": [
+                "PMKISAN_benefits_0"
+            ],
+            "retrieved_chunk_ids": [
+                "PMKISAN_benefits_0",
+                "PMKISAN_overview_0",
+                "PMKISAN_eligibility_0"
+            ],
+            "hit_at_3": true,
+            "reciprocal_rank": 1.0
+        },
+        {
+            "question": "How many instalments are provided under PM KISAN?",
+            "relevant_chunk_ids": [
+                "PMKISAN_benefits_0"
+            ],
+            "retrieved_chunk_ids": [
+                "PMKISAN_overview_0",
+                "PMKISAN_benefits_0",
+                "PMUY_benefits_and_documents_0"
+            ],
+            "hit_at_3": true,
+            "reciprocal_rank": 0.5
+        },
+        {
+            "question": "Who can apply for PM KISAN?",
+            "relevant_chunk_ids": [
+                "PMKISAN_eligibility_0"
+            ],
+            "retrieved_chunk_ids": [
+                "PMKISAN_overview_0",
+                "PMKISAN_benefits_0",
+                "PMUY_benefits_and_documents_0"
+            ],
+            "hit_at_3": false,
+            "reciprocal_rank": 0.0
+        },
+        {
+            "question": "What is the main objective of PM KISAN?",
+            "relevant_chunk_ids": [
+                "PMKISAN_overview_0"
+            ],
+            "retrieved_chunk_ids": [
+                "PMKISAN_overview_0",
+                "PMKISAN_benefits_0",
+                "PMUY_benefits_and_documents_0"
+            ],
+            "hit_at_3": true,
+            "reciprocal_rank": 1.0
+        },
+        {
+            "question": "What is the Ujjwala Yojana scheme?",
+            "relevant_chunk_ids": [
+                "PMUY_overview_0"
+            ],
+            "retrieved_chunk_ids": [
+                "PMUY_overview_0",
+                "PMKISAN_overview_0",
+                "PMUY_benefits_and_documents_0"
+            ],
+            "hit_at_3": true,
+            "reciprocal_rank": 1.0
+        },
+        {
+            "question": "What are the eligibility requirements for Ujjwala Yojana?",
+            "relevant_chunk_ids": [
+                "PMUY_eligibility_0"
+            ],
+            "retrieved_chunk_ids": [
+                "PMUY_eligibility_0",
+                "PMUY_overview_0",
+                "PMUY_benefits_and_documents_0"
+            ],
+            "hit_at_3": true,
+            "reciprocal_rank": 1.0
+        },
+        {
+            "question": "What documents are required for an LPG connection under PMUY?",
+            "relevant_chunk_ids": [
+                "PMUY_benefits_and_documents_0"
+            ],
+            "retrieved_chunk_ids": [
+                "PMUY_benefits_and_documents_0",
+                "PMUY_eligibility_0",
+                "PMUY_overview_0"
+            ],
+            "hit_at_3": true,
+            "reciprocal_rank": 1.0
+        }
+    ]
+}
