@@ -1,10 +1,12 @@
 # Gnani Prisma (speech-to-text) and Timbre (text-to-speech)
+import hashlib
 import io
 import json
 import os
 import re
 import time
 import wave
+from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
@@ -16,6 +18,7 @@ STT_KEY = os.getenv("GNANI_STT_API_KEY", "")
 TTS_KEY = os.getenv("GNANI_TTS_API_KEY", "")
 STT_URL = "https://api.vachana.ai/stt/v3"
 TTS_URL = "https://api.vachana.ai/api/v1/tts/inference"
+CACHE_DIR = Path(__file__).resolve().parents[1] / ".cache" / "tts"   # spoken answers are saved here
 
 
 def _lang_short(code: str) -> str:
@@ -76,10 +79,16 @@ def transcribe(wav_bytes: bytes, keyterms: list[str] | None = None,
 
 
 def speak(text: str, lang: str = "hi") -> bytes:
-    """Text -> speech. Returns WAV bytes."""
+    """Text -> speech. Returns WAV bytes. The same sentence is only paid for once (disk cache)."""
     text = prep_for_tts(text)
     if DRY_RUN:
         return _silent_wav()
+    if not text:
+        return _silent_wav(0.2)
+
+    cache_file = CACHE_DIR / (hashlib.sha1(f"{lang}|{text}".encode("utf-8")).hexdigest() + ".wav")
+    if cache_file.exists():
+        return cache_file.read_bytes()
     if not TTS_KEY:
         raise RuntimeError("GNANI_TTS_API_KEY is missing. Put it in .env")
 
@@ -101,4 +110,6 @@ def speak(text: str, lang: str = "hi") -> bytes:
             continue
         break
     response.raise_for_status()
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_file.write_bytes(response.content)
     return response.content

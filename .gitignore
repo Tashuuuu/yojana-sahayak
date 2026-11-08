@@ -1,4 +1,10 @@
 # --- project secrets and big files ---
+
+# --- added for evaluation and audio ---
+.cache/
+results/_private_*
+assets/demo_audio/
+
 .env
 .env.*
 !.env.example
