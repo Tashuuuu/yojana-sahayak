@@ -1,5 +1,6 @@
 # writes a short answer using ONLY the retrieved text (via Groq's free API)
 import os
+import re
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -29,13 +30,22 @@ def _get_client():
     return _client
 
 
+def _first_sentence(text: str) -> str:
+    """First sentence of a text (splits on . ! ? and the Hindi danda)."""
+    parts = re.split(r"(?<=[.!?।])\s+", text.strip())
+    return parts[0].strip() if parts else ""
+
+
 def generate_answer(query: str, chunks: list[dict], lang: str) -> str:
     """Return a short answer from the chunks, or the text NO_ANSWER."""
     if DRY_RUN:
-        if "आवेदन" in query or "apply" in query.lower() or "eligible" in query.lower():
-            return ("पात्र किसान परिवारों को हर साल छह हज़ार रुपये मिलते हैं।" if lang == "hi"
-                    else "Eligible farmer families receive six thousand rupees per year.")
-        return "NO_ANSWER"
+        # Fake LLM: use the first sentence of the best chunk (same language if possible).
+        # Always grounded in real data, so it works in English and Hindi.
+        if not chunks:
+            return "NO_ANSWER"
+        same_lang = [c for c in chunks if c.get("lang") == lang]
+        best = (same_lang or chunks)[0]
+        return _first_sentence(best["text"]) or "NO_ANSWER"
 
     lang_name = "Hindi (Devanagari script)" if lang == "hi" else "English"
     context = "\n\n".join(f"[{c['chunk_id']}] {c['text']}" for c in chunks)

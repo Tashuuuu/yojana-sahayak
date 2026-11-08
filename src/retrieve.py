@@ -17,7 +17,8 @@ MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 TOP_K = 4
 
 _model = None
-
+_index = None
+_chunks = None
 
 def load_model():
     """Load the embedding model once."""
@@ -88,43 +89,46 @@ def build_index():
     print("Vectors:", index.ntotal)
     print("Dimensions:", dimension)
 
+    global _index, _chunks
+    _index, _chunks = None, None  # force reload after rebuild
 
-def retrieve(query, top_k=TOP_K):
-    """Find the most semantically similar chunks."""
+def _load_index():
+    """Load FAISS index and metadata once, then reuse."""
+    global _index, _chunks
+
+    if _index is None or _chunks is None:
+        if not INDEX_PATH.exists() or not METADATA_PATH.exists():
+            build_index()
+
+        _index = faiss.read_index(str(INDEX_PATH))
+        with open(METADATA_PATH, "r", encoding="utf-8") as file:
+            _chunks = [json.loads(line) for line in file if line.strip()]
+
+    return _index, _chunks
+
+
+def retrieve(query, k=TOP_K, lang=None):
+    """Find the most semantically similar chunks.
+    lang is accepted for pipeline compatibility; the model is multilingual."""
     if not query or not query.strip():
         return []
 
-    if not INDEX_PATH.exists() or not METADATA_PATH.exists():
-        build_index()
-
     model = load_model()
-    index = faiss.read_index(str(INDEX_PATH))
-
-    with open(METADATA_PATH, "r", encoding="utf-8") as file:
-        chunks = [
-            json.loads(line)
-            for line in file if line.strip()
-        ]
+    index, chunks = _load_index()
 
     query_embedding = model.encode(
         [query],
         convert_to_numpy=True,
-        normalize_embeddings=True
+        normalize_embeddings=True,
     )
+    query_embedding = np.asarray(query_embedding, dtype="float32")
 
-    query_embedding = np.asarray(
-        query_embedding, dtype="float32"
-    )
-
-    k = min(top_k, index.ntotal)
-    scores, indices = index.search(query_embedding, k)
+    scores, indices = index.search(query_embedding, min(k, index.ntotal))
 
     results = []
-
     for score, idx in zip(scores[0], indices[0]):
         if idx == -1:
             continue
-
         result = chunks[idx].copy()
         result["similarity_score"] = float(score)
         results.append(result)
