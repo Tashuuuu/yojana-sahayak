@@ -1,3 +1,15 @@
+# --- project secrets and big files ---
+.env
+.env.*
+!.env.example
+index/*.faiss
+*.wav
+!assets/*.wav
+.venv/
+venv/
+.ipynb_checkpoints/
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

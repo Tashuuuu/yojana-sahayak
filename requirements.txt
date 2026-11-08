@@ -1,0 +1,12 @@
+requests
+python-dotenv
+openai
+sentence-transformers
+faiss-cpu
+transformers
+torch
+streamlit
+jiwer
+pytest
+pandas
+dotenv
