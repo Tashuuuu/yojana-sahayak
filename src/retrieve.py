@@ -106,15 +106,38 @@ def _load_index():
 
     return _index, _chunks
 
+def detect_scheme(query):
+    """Identify a government scheme mentioned in the query."""
+
+    q = query.lower().replace("_", " ").strip()
+
+    scheme_aliases = {
+        "PMKISAN": [
+            "pm-kisan", "pm kisan", "pmkisan",
+            "kisan samman nidhi"
+        ],
+        "PMUY": [
+            "pmuy", "ujjwala", "pradhan mantri ujjwala"
+        ]
+    }
+
+    for scheme_id, aliases in scheme_aliases.items():
+        if any(alias in q for alias in aliases):
+            return scheme_id
+
+    return None
 
 def retrieve(query, k=TOP_K, lang=None):
-    """Find the most semantically similar chunks.
-    lang is accepted for pipeline compatibility; the model is multilingual."""
+    """Find semantically similar chunks, prioritizing the requested scheme."""
+
     if not query or not query.strip():
         return []
 
     model = load_model()
     index, chunks = _load_index()
+
+    # Identify the scheme mentioned in the question
+    scheme_id = detect_scheme(query)
 
     query_embedding = model.encode(
         [query],
@@ -123,18 +146,36 @@ def retrieve(query, k=TOP_K, lang=None):
     )
     query_embedding = np.asarray(query_embedding, dtype="float32")
 
-    scores, indices = index.search(query_embedding, min(k, index.ntotal))
+    # Search all chunks
+    scores, indices = index.search(
+        query_embedding,
+        index.ntotal
+    )
 
     results = []
+
     for score, idx in zip(scores[0], indices[0]):
         if idx == -1:
             continue
-        result = chunks[idx].copy()
+
+        chunk = chunks[idx]
+
+        # Filter by language
+        if lang and chunk.get("lang") != lang:
+            continue
+
+        # Filter by scheme when one is identified
+        if scheme_id and chunk.get("scheme_id") != scheme_id:
+            continue
+
+        result = chunk.copy()
         result["similarity_score"] = float(score)
         results.append(result)
 
-    return results
+        if len(results) >= k:
+            break
 
+    return results
 
 if __name__ == "__main__":
     build_index()

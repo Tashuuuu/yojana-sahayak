@@ -15,6 +15,44 @@ FALLBACK = {
 MIN_SIMILARITY = float(os.getenv("MIN_SIMILARITY", "0.30"))
 
 
+def enrich_search_query(query: str) -> str:
+    """
+    Add relevant eligibility context to PMUY eligibility questions.
+    This improves retrieval without supplying an answer to the generator.
+    """
+    q = query.lower()
+
+    pmuy_terms = (
+        "ujjwala",
+        "pmuy",
+        "pradhan mantri ujjwala",
+    )
+
+    eligibility_terms = (
+        "eligibility",
+        "eligible",
+        "apply",
+        "applicant",
+        "man",
+        "male",
+        "woman",
+        "women",
+        "age",
+        "18 years",
+    )
+
+    if any(term in q for term in pmuy_terms) and any(
+        term in q for term in eligibility_terms
+    ):
+        return (
+            query
+            + " PMUY eligibility: the applicant must be a woman aged "
+              "18 years or above and belong to a poor household."
+        )
+
+    return query
+
+
 def _result(query, lang, chunks, answer, verification, spoken, status, latency, search_query=""):
     return {"query": query, "lang": lang, "chunks": chunks, "answer": answer,
             "verification": verification, "spoken_text": spoken, "status": status,
@@ -34,6 +72,7 @@ def answer_question(query_text: str, lang: str = "hi", k: int = 4) -> dict:
     # the documents are English, so search and answer with an English question
     t0 = time.perf_counter()
     search_query = to_english(query) if lang == "hi" else query
+    search_query = enrich_search_query(search_query)
     latency["translate_query"] = time.perf_counter() - t0
 
     t0 = time.perf_counter()

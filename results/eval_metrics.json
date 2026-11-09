@@ -5,23 +5,23 @@
   ],
   "n_questions": 40,
   "n_errors": 0,
-  "n_answerable": 22,
-  "n_unanswerable": 18,
-  "hit_at_3": 0.909,
-  "mrr_at_3": 0.886,
-  "refusal_correct": 17,
-  "refusal_total": 18,
-  "false_refusals_on_answerable": 6,
+  "n_answerable": 30,
+  "n_unanswerable": 10,
+  "hit_at_3": 1.0,
+  "mrr_at_3": 0.939,
+  "refusal_correct": 10,
+  "refusal_total": 10,
+  "false_refusals_on_answerable": 0,
   "status_counts": {
-    "verified": 13,
-    "partial": 4,
-    "refused": 23
+    "verified": 30,
+    "partial": 0,
+    "refused": 10
   },
-  "mean_groundedness_of_answered": 0.882,
+  "mean_groundedness_of_answered": 1.0,
   "median_seconds": {
-    "t_retrieve": 0.032,
-    "t_generate": 0.468,
-    "t_verify": 1.483,
-    "t_total": 2.091
+    "t_retrieve": 0.056,
+    "t_generate": 0.564,
+    "t_verify": 4.505,
+    "t_total": 5.829
   }
 }

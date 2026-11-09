@@ -78,16 +78,36 @@ def translate(text: str, lang: str) -> str:
     return out or text
 
 
+
 def to_english(text: str) -> str:
-    """Translate a Hindi question to English, because the documents are in English.
-    If anything goes wrong, return the original text (search still works, just weaker)."""
+    """Translate Hindi questions while preserving official scheme names."""
     if DRY_RUN or not text.strip():
         return text
+
+    # Preserve official English names of schemes that were mistranslated.
+    scheme_names = {
+        "प्रधानमंत्री सुरक्षा बीमा योजना":
+            "Pradhan Mantri Suraksha Bima Yojana (PMSBY)",
+        "राष्ट्रीय साधन-सह-योग्यता छात्रवृत्ति योजना":
+            "National Means-cum-Merit Scholarship Scheme (NMMS)",
+    }
+
+    translated_input = text
+    for hindi_name, official_name in scheme_names.items():
+        translated_input = translated_input.replace(
+            hindi_name, official_name
+        )
+
     try:
         out = _ask(
             "Translate the user's question from Hindi into clear English. "
-            "Keep scheme names as they are (for example PM-KISAN, Ujjwala Yojana). "
-            "Output only the English question.", text, max_tokens=500)
-        return out or text
+            "Preserve official scheme names, their English spellings, "
+            "and abbreviations exactly as provided. Never translate "
+            "or rename an official scheme name. "
+            "Output only the English translation.",
+            translated_input,
+            max_tokens=500
+        )
+        return out or translated_input
     except Exception:
-        return text
+        return translated_input

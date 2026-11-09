@@ -1,0 +1,40 @@
+{"qid": "Q01", "lang": "en", "question": "How much money do farmers receive under PM-KISAN?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q02", "lang": "en", "question": "How many instalments are paid under PM-KISAN?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q03", "lang": "en", "question": "When did PM-KISAN become operational?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q04", "lang": "en", "question": "Who is eligible for PM-KISAN?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q05", "lang": "en", "question": "Who is excluded from PM-KISAN?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q06", "lang": "en", "question": "What is the objective of PM-KISAN?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q07", "lang": "en", "question": "Who can apply for Ujjwala Yojana?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q08", "lang": "en", "question": "What documents are needed for an Ujjwala LPG connection?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q09", "lang": "en", "question": "What is included in the Ujjwala connection package?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q10", "lang": "en", "question": "Which ministry runs Pradhan Mantri Ujjwala Yojana?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q11", "lang": "en", "question": "Is there an installation charge for an Ujjwala LPG connection?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q12", "lang": "en", "question": "What is the minimum age to apply under Ujjwala Yojana?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q13", "lang": "hi", "question": "पीएम किसान में किसानों को साल में कितने रुपये मिलते हैं?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q14", "lang": "hi", "question": "पीएम किसान की राशि कितनी किस्तों में मिलती है?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q15", "lang": "hi", "question": "पीएम किसान में कौन आवेदन कर सकता है?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q16", "lang": "hi", "question": "पीएम किसान योजना से किन लोगों को बाहर रखा गया है?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q17", "lang": "hi", "question": "पीएम किसान योजना का उद्देश्य क्या है?", "answerable": true, "gold_scheme_id": "PMKISAN"}
+{"qid": "Q18", "lang": "hi", "question": "उज्ज्वला योजना क्या है?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q19", "lang": "hi", "question": "उज्ज्वला योजना में आवेदन के लिए महिला की उम्र कितनी होनी चाहिए?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q20", "lang": "hi", "question": "उज्ज्वला योजना के लिए कौन से दस्तावेज़ चाहिए?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q21", "lang": "hi", "question": "उज्ज्वला कनेक्शन में क्या-क्या मिलता है?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q22", "lang": "hi", "question": "उज्ज्वला योजना किस मंत्रालय के अंतर्गत आती है?", "answerable": true, "gold_scheme_id": "PMUY"}
+{"qid": "Q23", "lang": "en", "question": "What is the weather today?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q24", "lang": "en", "question": "What is the PM-KISAN helpline number?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q25", "lang": "en", "question": "When will the next PM-KISAN instalment be released?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q26", "lang": "en", "question": "How much does an LPG cylinder refill cost under Ujjwala?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q27", "lang": "en", "question": "Is there a subsidy on Ujjwala cylinder refills?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q28", "lang": "en", "question": "How much money does PM Awas Yojana give for building a house?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q29", "lang": "en", "question": "How much health insurance does Ayushman Bharat provide?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q30", "lang": "en", "question": "What is the capital of France?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q31", "lang": "en", "question": "When is the next cricket match?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q32", "lang": "en", "question": "Can a man apply for Ujjwala Yojana in his own name?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q33", "lang": "hi", "question": "आज मौसम कैसा है?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q34", "lang": "hi", "question": "पीएम किसान की अगली किस्त कब आएगी?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q35", "lang": "hi", "question": "पीएम किसान हेल्पलाइन नंबर क्या है?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q36", "lang": "hi", "question": "उज्ज्वला सिलेंडर रिफिल की कीमत कितनी है?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q37", "lang": "hi", "question": "प्रधानमंत्री आवास योजना में कितने पैसे मिलते हैं?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q38", "lang": "hi", "question": "आयुष्मान भारत में कितना बीमा मिलता है?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q39", "lang": "hi", "question": "भारत की राजधानी क्या है?", "answerable": false, "gold_scheme_id": null}
+{"qid": "Q40", "lang": "hi", "question": "क्रिकेट का अगला मैच कब है?", "answerable": false, "gold_scheme_id": null}
