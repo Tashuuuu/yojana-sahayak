@@ -1,5 +1,6 @@
-# eval/run_eval.py — run every evaluation question through the pipeline and compute the metrics.
-# Usage (from the repo root):  python eval/run_eval.py --sleep 2
+"""Run the 40-question answer/refusal/verifier evaluation using real components."""
+from __future__ import annotations
+
 import argparse
 import csv
 import json
@@ -11,126 +12,130 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-
 from dotenv import load_dotenv  # noqa: E402
-
-load_dotenv(ROOT / ".env")  # must run BEFORE importing src.* (they read DRY_RUN when imported)
-
+load_dotenv(ROOT / ".env")
 from src.pipeline import answer_question  # noqa: E402
+from src.retrieve import retrieve  # noqa: E402
 
 
-def load_jsonl(path: Path) -> list[dict]:
-    with open(path, encoding="utf-8-sig") as f:
-        return [json.loads(line) for line in f if line.strip()]
+def _load_jsonl(path: Path) -> list[dict]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
 
 
-def median(values):
-    vals = [v for v in values if v is not None]
-    return round(statistics.median(vals), 3) if vals else None
+def _median(values: list[float]) -> float | None:
+    return round(statistics.median(values), 3) if values else None
 
 
-def rank_of_gold(chunks: list[dict], gold: str, top: int = 3):
-    """1-based position of the first chunk from the gold scheme within the top chunks, else None."""
-    for i, chunk in enumerate(chunks[:top], start=1):
-        if chunk.get("scheme_id") == gold:
-            return i
+def _gold_rank(chunks: list[dict], question: dict, top: int = 3) -> int | None:
+    for rank, chunk in enumerate(chunks[:top], 1):
+        if chunk.get("scheme_id") != question.get("gold_scheme_id"):
+            continue
+        section = question.get("gold_section")
+        if section and str(chunk.get("section", "")).casefold() != str(section).casefold():
+            continue
+        return rank
     return None
 
 
-def main():
-    ap = argparse.ArgumentParser(description="Run the evaluation questions through the pipeline.")
-    ap.add_argument("--questions", default="eval/questions.jsonl")
-    ap.add_argument("--out", default="results/eval_run.csv")
-    ap.add_argument("--sentences", default="results/eval_sentences.jsonl")
-    ap.add_argument("--metrics", default="results/eval_metrics.json")
-    ap.add_argument("--sleep", type=float, default=2.0, help="seconds to wait between questions (Groq rate limit)")
-    ap.add_argument("--limit", type=int, default=0, help="run only the first N questions (0 = all)")
-    ap.add_argument("--k", type=int, default=4, help="chunks retrieved per question")
-    args = ap.parse_args()
-
-    dry = os.getenv("DRY_RUN", "0") == "1"
-    if dry:
-        print("WARNING: DRY_RUN=1, so answers are fake. These numbers are NOT real results.\n")
-
-    questions = load_jsonl(ROOT / args.questions)
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--questions", default="eval/eval_questions.jsonl")
+    parser.add_argument("--out", default="results/eval_run.csv")
+    parser.add_argument("--sentences", default="results/eval_sentences.jsonl")
+    parser.add_argument("--metrics", default="results/eval_metrics.json")
+    parser.add_argument("--sleep", type=float, default=1.0)
+    parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--k", type=int, default=4)
+    args = parser.parse_args()
+    questions = _load_jsonl(ROOT / args.questions)
     if args.limit:
-        questions = questions[: args.limit]
-    (ROOT / "results").mkdir(exist_ok=True)
+        questions = questions[:args.limit]
+    if not questions:
+        raise SystemExit("Evaluation question set is empty")
+    dry_run = os.getenv("DRY_RUN", "0") == "1"
+    if dry_run:
+        print("WARNING: DRY_RUN=1; generation/speech are simulated. Do not report these as real results.")
 
-    rows, sentence_records, sources = [], [], set()
-    for n, q in enumerate(questions, start=1):
-        row = {"qid": q["qid"], "lang": q.get("lang", "hi"), "answerable": bool(q.get("answerable")),
-               "question": q["question"], "gold_scheme_id": q.get("gold_scheme_id"), "status": "error",
-               "hit3": None, "rank": None, "top3_schemes": "", "answer": "", "spoken_text": "",
-               "groundedness": None, "t_retrieve": None, "t_generate": None, "t_verify": None,
-               "t_total": None, "retrieval_source": "", "error": ""}
+    rows: list[dict] = []
+    sentence_records: list[dict] = []
+    for number, question in enumerate(questions, 1):
+        lang = "hi" if str(question.get("lang", "en")).lower().startswith("hi") else "en"
+        answerable = bool(question.get("answerable"))
+        start = time.perf_counter()
+        row = {
+            "qid": question.get("qid", f"Q{number:03d}"), "lang": lang,
+            "answerable": answerable, "question": question["question"],
+            "gold_scheme_id": question.get("gold_scheme_id") or "",
+            "status": "error", "hit3": None, "rank": None, "top3_schemes": "",
+            "answer": "", "spoken_text": "", "groundedness": None,
+            "t_retrieve": None, "t_generate": None, "t_verify": None, "t_total": None, "error": "",
+        }
         try:
-            t0 = time.perf_counter()
-            r = answer_question(q["question"], row["lang"], k=args.k)
-            row["t_total"] = round(time.perf_counter() - t0, 3)
-            sources.add(r.get("retrieval_source", ""))
-            top3 = r["chunks"][:3]
+            raw_retrieval = retrieve(question["question"], k=args.k, lang=lang)
+            rank = _gold_rank(raw_retrieval, question) if answerable else None
+            result = answer_question(question["question"], lang=lang, k=args.k)
             row.update({
-                "status": r["status"], "answer": r["answer"], "spoken_text": r["spoken_text"],
-                "groundedness": r["verification"]["groundedness"],
-                "top3_schemes": " | ".join(c.get("scheme_id", "") for c in top3),
-                "retrieval_source": r.get("retrieval_source", ""),
-                "t_retrieve": round(r["latency"].get("retrieve", 0), 3),
-                "t_generate": round(r["latency"].get("generate", 0), 3),
-                "t_verify": round(r["latency"].get("verify", 0), 3),
+                "status": result["status"],
+                "rank": rank,
+                "hit3": (rank is not None) if answerable else None,
+                "top3_schemes": " | ".join(str(x.get("scheme_id", "")) for x in raw_retrieval[:3]),
+                "answer": result["answer"],
+                "spoken_text": result["spoken_text"],
+                "groundedness": result["verification"].get("groundedness", 0.0),
+                "t_retrieve": round(result["latency"].get("retrieve", 0.0), 3),
+                "t_generate": round(result["latency"].get("generate", 0.0), 3),
+                "t_verify": round(result["latency"].get("verify", 0.0), 3),
             })
-            if row["answerable"]:
-                row["rank"] = rank_of_gold(r["chunks"], row["gold_scheme_id"])
-                row["hit3"] = row["rank"] is not None
             sentence_records.append({
-                "qid": q["qid"], "lang": row["lang"], "question": q["question"], "status": r["status"],
-                "sentences": r["verification"]["sentences"],
-                "chunks": [{"chunk_id": c["chunk_id"], "text": c["text"]} for c in top3],
+                "qid": row["qid"], "lang": lang, "question": question["question"],
+                "status": result["status"], "sentences": result["verification"].get("sentences", []),
+                "chunks": [{"chunk_id": chunk.get("chunk_id"), "text": chunk.get("text"),
+                            "source_url": chunk.get("source_url")} for chunk in raw_retrieval[:3]],
             })
-        except Exception as err:  # keep going; record the failure
-            row["error"] = f"{type(err).__name__}: {err}"
+        except Exception as exc:
+            row["error"] = f"{type(exc).__name__}: {exc}"
+        row["t_total"] = round(time.perf_counter() - start, 3)
         rows.append(row)
-        print(f"[{n}/{len(questions)}] {row['qid']} -> {row['status']} {row['error']}")
-        time.sleep(args.sleep)
+        print(f"[{number}/{len(questions)}] {row['qid']} -> {row['status']} {row['error']}")
+        if args.sleep > 0 and number < len(questions):
+            time.sleep(args.sleep)
 
-    with open(ROOT / args.out, "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+    out_path = ROOT / args.out
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", newline="", encoding="utf-8-sig") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
-    with open(ROOT / args.sentences, "w", encoding="utf-8") as f:
-        for rec in sentence_records:
-            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    with (ROOT / args.sentences).open("w", encoding="utf-8") as handle:
+        for item in sentence_records:
+            handle.write(json.dumps(item, ensure_ascii=False) + "\n")
 
-    ok = [x for x in rows if not x["error"]]
-    answerable = [x for x in ok if x["answerable"]]
-    unanswerable = [x for x in ok if not x["answerable"]]
-    hits = sum(1 for x in answerable if x["hit3"])
-    mrr = sum(1 / x["rank"] for x in answerable if x["rank"]) / len(answerable) if answerable else None
-    refused_ok = sum(1 for x in unanswerable if x["status"] == "refused")
-    false_refusals = sum(1 for x in answerable if x["status"] == "refused")
-    grounded = [x["groundedness"] for x in ok if x["status"] != "refused" and x["groundedness"] is not None]
-
+    successful = [row for row in rows if not row["error"]]
+    answerable_rows = [row for row in successful if row["answerable"]]
+    unanswerable_rows = [row for row in successful if not row["answerable"]]
+    reciprocal = [1 / row["rank"] for row in answerable_rows if row["rank"]]
+    grounded = [row["groundedness"] for row in successful
+                if row["status"] != "refused" and row["groundedness"] is not None]
     metrics = {
-        "dry_run": dry, "retrieval_sources": sorted(sources),
-        "n_questions": len(rows), "n_errors": len(rows) - len(ok),
-        "n_answerable": len(answerable), "n_unanswerable": len(unanswerable),
-        "hit_at_3": round(hits / len(answerable), 3) if answerable else None,
-        "mrr_at_3": round(mrr, 3) if mrr is not None else None,
-        "refusal_correct": refused_ok, "refusal_total": len(unanswerable),
-        "false_refusals_on_answerable": false_refusals,
-        "status_counts": {s: sum(1 for x in ok if x["status"] == s) for s in ("verified", "partial", "refused")},
-        "mean_groundedness_of_answered": round(statistics.mean(grounded), 3) if grounded else None,
-        "median_seconds": {k: median([x[k] for x in ok]) for k in ("t_retrieve", "t_generate", "t_verify", "t_total")},
+        "dry_run": dry_run,
+        "n_questions": len(rows), "n_errors": len(rows) - len(successful),
+        "n_answerable": len(answerable_rows), "n_unanswerable": len(unanswerable_rows),
+        "hit_at_3": round(sum(bool(row["hit3"]) for row in answerable_rows) / len(answerable_rows), 3) if answerable_rows else None,
+        "mrr_at_3": round(sum(reciprocal) / len(answerable_rows), 3) if answerable_rows else None,
+        "refusal_correct": sum(row["status"] == "refused" for row in unanswerable_rows),
+        "refusal_total": len(unanswerable_rows),
+        "false_refusals_on_answerable": sum(row["status"] == "refused" for row in answerable_rows),
+        "mean_groundedness_of_answered": round(statistics.mean(grounded), 4) if grounded else None,
+        "status_counts": {status: sum(row["status"] == status for row in successful)
+                          for status in ("verified", "partial", "refused")},
+        "median_seconds": {
+            key: _median([row[key] for row in successful if row[key] is not None])
+            for key in ("t_retrieve", "t_generate", "t_verify", "t_total")
+        },
+        "note": "Human correctness and held-out verifier precision/recall require separate human labels.",
     }
-    with open(ROOT / args.metrics, "w", encoding="utf-8") as f:
-        json.dump(metrics, f, ensure_ascii=False, indent=2)
-
-    print("\n=== METRICS ===")
+    (ROOT / args.metrics).write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(metrics, ensure_ascii=False, indent=2))
-    if "mock" in sources:
-        print("\nWARNING: some answers used MOCK retrieval. Do not report these numbers.")
-    if metrics["n_errors"]:
-        print(f"\nWARNING: {metrics['n_errors']} questions failed. See the 'error' column in {args.out}.")
 
 
 if __name__ == "__main__":

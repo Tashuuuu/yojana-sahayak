@@ -1,46 +1,33 @@
-# real retrieval + fake LLM/speech (DRY_RUN, no API credits)
-import os
-
-os.environ["DRY_RUN"] = "1"
-
-import pytest  # noqa: E402
-
-from src.pipeline import FALLBACK, answer_question  # noqa: E402
-from src.retrieve import retrieve  # noqa: E402
+"""Pipeline tests use mocks; no model downloads or API calls."""
+import src.pipeline as pipeline
 
 
-@pytest.fixture(scope="session", autouse=True)
-def warm_up():
-    """Load the model and index once, so tests are not slow one by one."""
-    retrieve("test")
+def test_empty_question_refuses_without_retrieval(monkeypatch):
+    monkeypatch.setattr(pipeline, "retrieve", lambda *a, **k: (_ for _ in ()).throw(AssertionError()))
+    result = pipeline.answer_question("  ", "hi")
+    assert result["status"] == "refused"
+    assert result["spoken_text"] == pipeline.FALLBACK["hi"]
 
 
-def test_english_question_is_verified():
-    r = answer_question("Who can apply for PM-KISAN?", "en")
-    assert r["status"] == "verified"
-    assert r["verification"]["groundedness"] == 1.0
-    assert r["spoken_text"] == r["answer"]
+def test_unanswerable_retrieval_refuses(monkeypatch):
+    monkeypatch.setattr(pipeline, "retrieve", lambda *a, **k: [])
+    result = pipeline.answer_question("What is the weather?", "en")
+    assert result["status"] == "refused"
+    assert result["spoken_text"] == pipeline.FALLBACK["en"]
 
 
-def test_hindi_question_is_verified():
-    r = answer_question("पीएम किसान में कौन आवेदन कर सकता है?", "hi")
-    assert r["status"] == "verified"
-
-
-def test_unanswerable_question_is_refused():
-    r = answer_question("What is the weather today?", "en")
-    assert r["status"] == "refused"
-    assert r["spoken_text"] == FALLBACK["en"]
-
-
-def test_empty_question_is_refused():
-    r = answer_question("   ", "hi")
-    assert r["status"] == "refused"
-    assert r["spoken_text"] == FALLBACK["hi"]
-
-
-def test_result_has_contract_keys():
-    r = answer_question("Who can apply?", "en")
-    for key in ["query", "lang", "chunks", "answer", "verification",
-                "spoken_text", "status", "latency"]:
-        assert key in r
+def test_verified_answer_returns_supported_sentence(monkeypatch):
+    monkeypatch.setattr(pipeline, "retrieve", lambda *a, **k: [{
+        "chunk_id": "c1", "scheme_id": "S", "lang": "en", "section": "Benefits",
+        "text": "The scheme provides Rs. 6000 per year.", "source_url": "https://example.gov.in",
+        "similarity_score": 0.9,
+    }])
+    monkeypatch.setattr(pipeline, "generate_answer", lambda *a, **k: "The scheme provides Rs. 6000 per year.")
+    monkeypatch.setattr(pipeline, "verify_answer", lambda *a, **k: {
+        "sentences": [{"text": "The scheme provides Rs. 6000 per year.", "label": "Supported"}],
+        "groundedness": 1.0,
+    })
+    result = pipeline.answer_question("What is the benefit?", "en")
+    assert result["status"] == "verified"
+    assert result["spoken_text"] == "The scheme provides Rs. 6000 per year."
+    assert result["verification"]["groundedness"] == 1.0

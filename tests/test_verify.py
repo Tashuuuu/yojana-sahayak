@@ -1,37 +1,50 @@
-# runs the real NLI model locally (no API credits; first run downloads ~1 GB)
-from src.verify import split_sentences, verify_answer
-
-EN = [{"chunk_id": "c1", "lang": "en",
-       "text": "PM-KISAN gives eligible farmer families six thousand rupees per year in three instalments."}]
-HI = [{"chunk_id": "c2", "lang": "hi",
-       "text": "पीएम-किसान योजना में पात्र किसान परिवारों को प्रति वर्ष छह हज़ार रुपये तीन किस्तों में मिलते हैं।"}]
+"""NLI logic tests with a fake model score function; the real model is tested by smoke runs."""
+import src.verify as verify
 
 
 def test_split_hindi_and_english():
-    assert len(split_sentences("यह एक वाक्य है। यह दूसरा है।")) == 2
-    assert len(split_sentences("One sentence. Two sentences.")) == 2
+    assert len(verify.split_sentences("यह पहला वाक्य है। यह दूसरा वाक्य है।")) == 2
+    assert len(verify.split_sentences("First sentence. Second sentence.")) == 2
 
 
-def test_supported_english():
-    r = verify_answer("Eligible farmers get six thousand rupees per year.", EN, "en")
-    assert r["sentences"][0]["label"] == "Supported"
+def test_checkpoint_label_mapping_matches_published_config():
+    assert verify.resolve_id2label({"0": "entailment", "1": "neutral", "2": "contradiction"}) == {
+        0: "entailment", 1: "neutral", 2: "contradiction"
+    }
+    assert verify.resolve_id2label({"0": "LABEL_0", "1": "LABEL_1", "2": "LABEL_2"}) == {
+        0: "entailment", 1: "neutral", 2: "contradiction"
+    }
 
 
-def test_unsupported_english():
-    r = verify_answer("The scheme gives a free tractor to every farmer.", EN, "en")
-    assert r["sentences"][0]["label"] != "Supported"
+def test_supported_unsupported_and_contradicted_labels(monkeypatch):
+    def fake_batch(premises, hypothesis):
+        lowered = hypothesis.lower()
+        if "unsupported" in lowered:
+            return [{"entailment": 0.10, "neutral": 0.85, "contradiction": 0.05} for _ in premises]
+        if "contradicted" in lowered:
+            return [{"entailment": 0.02, "neutral": 0.03, "contradiction": 0.95} for _ in premises]
+        if "conflict" in lowered:
+            return [{"entailment": 0.91, "neutral": 0.02, "contradiction": 0.75} for _ in premises]
+        if "supported" in lowered:
+            return [{"entailment": 0.95, "neutral": 0.04, "contradiction": 0.01} for _ in premises]
+        return [{"entailment": 0.10, "neutral": 0.85, "contradiction": 0.05} for _ in premises]
+    monkeypatch.setattr(verify, "nli_batch", fake_batch)
+    chunks = [{"chunk_id": "c1", "lang": "en", "text": "A source premise is available."}]
+    result = verify.verify_answer(
+        "This is supported. This is unsupported. This is contradicted. This is conflict.", chunks, "en"
+    )
+    assert [item["label"] for item in result["sentences"]] == [
+        "Supported", "Unsupported", "Contradicted", "Contradicted"
+    ]
+    assert round(result["groundedness"], 3) == 0.25
 
 
-def test_supported_hindi():
-    r = verify_answer("पात्र किसान परिवारों को हर साल छह हज़ार रुपये मिलते हैं।", HI, "hi")
-    assert r["sentences"][0]["label"] == "Supported"
+def test_rs_abbreviation_does_not_split_answer_sentence():
+    assert verify.split_sentences("Farmers receive Rs. 6000 per year. It is paid in instalments.") == [
+        "Farmers receive Rs. 6000 per year.", "It is paid in instalments."
+    ]
 
 
-def test_empty_answer():
-    r = verify_answer("", EN, "en")
-    assert r["groundedness"] == 0.0 and r["sentences"] == []
-
-
-def test_groundedness_is_a_fraction():
-    r = verify_answer("Farmers get six thousand rupees a year. The scheme gives a car to every farmer.", EN, "en")
-    assert 0.0 <= r["groundedness"] <= 1.0
+def test_empty_answer_is_zero_groundedness():
+    result = verify.verify_answer("", [], "en")
+    assert result == {"sentences": [], "groundedness": 0.0}
