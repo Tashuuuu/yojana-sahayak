@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env", override=True)
 
-from src.generate import generate_answer, requires_explanation, translate_verified_answer  # noqa: E402
+from src.generate import generate_answer, requires_explanation, requires_conditions_list, translate_verified_answer  # noqa: E402
 from src.retrieve import retrieve  # noqa: E402
 from src.verify import verify_answer  # noqa: E402
 from src.voice import speak, transcribe  # noqa: E402
@@ -220,7 +220,7 @@ def answer_question(
     supported = [item["text"] for item in sentence_results if item.get("label") == "Supported"]
     all_supported = bool(sentence_results) and len(supported) == len(sentence_results)
 
-    required_supported = 2 if requires_explanation(query) else 1
+    required_supported = 2 if (requires_explanation(query) or requires_conditions_list(query)) else 1
     if len(supported) < required_supported:
         return _refuse(
             query, lang, chunks, verification, latency, make_audio=make_audio,
