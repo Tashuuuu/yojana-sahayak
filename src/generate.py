@@ -8,14 +8,19 @@ from openai import OpenAI
 load_dotenv()
 
 DRY_RUN = os.getenv("DRY_RUN", "0") == "1"
-MODEL = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")  # llama-3.3-70b-versatile was shut down by Groq
 
 SYSTEM_PROMPT = (
     "You answer questions about Indian government welfare schemes. "
-    "Use ONLY the CONTEXT below. If the CONTEXT does not contain the answer, reply with exactly: NO_ANSWER. "
-    "Answer in {lang_name}. Use at most 3 short sentences. Each sentence must be a plain factual statement "
-    "that is directly stated in the CONTEXT. Do not add advice, opinions, or facts from memory. "
-    "Write amounts in words (for example 'six thousand rupees') so they can be read aloud."
+    "Use ONLY the CONTEXT below. "
+    "Copy the wording of the CONTEXT as closely as possible. Do not paraphrase and do not reword facts. "
+    "If the CONTEXT is about the topic of the question, answer with what it says, even if it answers only part of the question. "
+    "Reply with exactly NO_ANSWER only if the CONTEXT has nothing relevant to the question. "
+    "Answer in {lang_name}. Use at most 3 short sentences. "
+    "Each sentence must make sense on its own (do not start with 'these' or 'they'). "
+    "Do not add advice, opinions, steps, documents or facts from memory. "
+    "Write numbers, dates and amounts exactly as they appear in the CONTEXT (keep digits as digits; "
+    "do not spell them out in words)."
 )
 
 _client = None
@@ -36,11 +41,20 @@ def _first_sentence(text: str) -> str:
     return parts[0].strip() if parts else ""
 
 
+def _ask(system: str, user: str, max_tokens: int = 2000) -> str:
+    """One call to the LLM. gpt-oss models 'think' first, so give room and keep it fast."""
+    extra = {"reasoning_effort": "low"} if "gpt-oss" in MODEL else {}
+    result = _get_client().chat.completions.create(
+        model=MODEL, temperature=0, max_tokens=max_tokens, **extra,
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}])
+    text = (result.choices[0].message.content or "").strip()
+    return text.replace("\u2011", "-")  # model sometimes uses non-breaking hyphens
+
+
 def generate_answer(query: str, chunks: list[dict], lang: str) -> str:
     """Return a short answer from the chunks, or the text NO_ANSWER."""
     if DRY_RUN:
-        # Fake LLM: use the first sentence of the best chunk (same language if possible).
-        # Always grounded in real data, so it works in English and Hindi.
+        # Fake LLM: first sentence of the best chunk (same language if possible).
         if not chunks:
             return "NO_ANSWER"
         same_lang = [c for c in chunks if c.get("lang") == lang]
@@ -49,10 +63,31 @@ def generate_answer(query: str, chunks: list[dict], lang: str) -> str:
 
     lang_name = "Hindi (Devanagari script)" if lang == "hi" else "English"
     context = "\n\n".join(f"[{c['chunk_id']}] {c['text']}" for c in chunks)
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT.format(lang_name=lang_name)},
-        {"role": "user", "content": f"CONTEXT:\n{context}\n\nQUESTION: {query}"},
-    ]
-    result = _get_client().chat.completions.create(
-        model=MODEL, messages=messages, temperature=0, max_tokens=250)
-    return result.choices[0].message.content.strip()
+    return _ask(SYSTEM_PROMPT.format(lang_name=lang_name),
+                f"CONTEXT:\n{context}\n\nQUESTION: {query}")
+
+
+def translate(text: str, lang: str) -> str:
+    """Translate verified English text to Hindi for speech. English passes through."""
+    if lang != "hi" or DRY_RUN or not text.strip():
+        return text
+    out = _ask(
+        "Translate the user's text into simple spoken Hindi (Devanagari script). "
+        "Keep the meaning exactly the same. Do not add, remove or explain anything. "
+        "Output only the translation.", text)
+    return out or text
+
+
+def to_english(text: str) -> str:
+    """Translate a Hindi question to English, because the documents are in English.
+    If anything goes wrong, return the original text (search still works, just weaker)."""
+    if DRY_RUN or not text.strip():
+        return text
+    try:
+        out = _ask(
+            "Translate the user's question from Hindi into clear English. "
+            "Keep scheme names as they are (for example PM-KISAN, Ujjwala Yojana). "
+            "Output only the English question.", text, max_tokens=500)
+        return out or text
+    except Exception:
+        return text
