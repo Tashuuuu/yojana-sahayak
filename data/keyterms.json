@@ -12,5 +12,95 @@
         "benefits_and_documents",
         "eligibility",
         "overview"
+    ],
+    "PMFBY": [
+        "PMFBY",
+        "Pradhan Mantri Fasal Bima Yojana",
+        "overview"
+    ],
+    "KCC": [
+        "KCC",
+        "Kisan Credit Card Scheme",
+        "overview"
+    ],
+    "PMKMY": [
+        "PMKMY",
+        "Pradhan Mantri Kisan Maandhan Yojana",
+        "overview"
+    ],
+    "SSY": [
+        "SSY",
+        "Sukanya Samriddhi Yojana",
+        "overview"
+    ],
+    "PMJAY": [
+        "Ayushman Bharat Pradhan Mantri Jan Arogya Yojana",
+        "PMJAY",
+        "overview"
+    ],
+    "JSY": [
+        "JSY",
+        "Janani Suraksha Yojana",
+        "overview"
+    ],
+    "MI": [
+        "MI",
+        "Mission Indradhanush",
+        "overview"
+    ],
+    "PMAYG": [
+        "PMAYG",
+        "Pradhan Mantri Awas Yojana Gramin",
+        "overview"
+    ],
+    "PMAYU": [
+        "PMAYU",
+        "Pradhan Mantri Awas Yojana Urban",
+        "overview"
+    ],
+    "SBM": [
+        "SBM",
+        "Swachh Bharat Mission",
+        "overview"
+    ],
+    "PMJDY": [
+        "PMJDY",
+        "Pradhan Mantri Jan-Dhan Yojana",
+        "overview"
+    ],
+    "APY": [
+        "APY",
+        "Atal Pension Yojana",
+        "overview"
+    ],
+    "PMJJBY": [
+        "PMJJBY",
+        "Pradhan Mantri Jeevan Jyoti Bima Yojana",
+        "overview"
+    ],
+    "PMSBY": [
+        "PMSBY",
+        "Pradhan Mantri Suraksha Bima Yojana",
+        "overview"
+    ],
+    "PMMY": [
+        "PMMY",
+        "Pradhan Mantri MUDRA Yojana",
+        "overview"
+    ],
+    "MGNREGA": [
+        "MGNREGA",
+        "Mahatma Gandhi National Rural Employment Guarantee Act",
+        "overview"
+    ],
+    "PMKVY": [
+        "PMKVY",
+        "Pradhan Mantri Kaushal Vikas Yojana",
+        "overview"
+    ],
+    "NMMS": [
+        "NMMS",
+        "National Means-cum-Merit Scholarship Scheme",
+        "overview"
     ]
 }

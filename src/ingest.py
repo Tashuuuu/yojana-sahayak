@@ -65,7 +65,7 @@ def main():
 
         for i, chunk_text in enumerate(chunks):
             chunk = {
-                "chunk_id": f'{record["scheme_id"]}_{record["section"]}_{i}',
+                "chunk_id": f'{record["scheme_id"]}_{record["lang"]}_{record["section"]}_{i}',
                 "scheme_id": record["scheme_id"],
                 "name_en": record["name_en"],
                 "name_hi": record["name_hi"],
