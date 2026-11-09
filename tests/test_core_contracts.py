@@ -29,6 +29,7 @@ class FakeResponse:
         self.status_code = status_code
         self.text = text
         self.headers = {"Content-Type": "audio/wav"}
+        self.ok = status_code < 400
 
     def json(self):
         return self._payload
@@ -81,16 +82,16 @@ def test_prisma_real_request_contract_and_keyterms(monkeypatch):
     assert result["request_id"] == "req-1"
     sent_data = calls[0]["data"]
     assert sent_data["model"] == "prisma-v3.0"
-    assert sent_data["language_code"] == "indic-auto"
-    assert sent_data["multi_lang_codes"] == "hi-IN,en-IN"
+    assert sent_data["language_code"] == "hi-IN,en-IN"
+    assert "multi_lang_codes" not in sent_data
     # Gnani's current REST API calls the synopsis's keyterms `keywords`.
-    assert json.loads(sent_data["keywords"]) == ["PM-KISAN", "पीएम-किसान"]
+    assert json.loads(sent_data["keyterms"]) == ["PM-KISAN", "पीएम-किसान"]
 
 
 def test_prisma_v25_fallback_omits_model_and_v3_only_fields(monkeypatch):
     calls = []
     responses = [
-        FakeResponse(status_code=400, text="Unknown model parameter"),
+        FakeResponse(status_code=400, text='{"success":false,"error":{"type":"INVALID_MODEL"}}'),
         FakeResponse(payload={"success": True, "transcript": "नमस्ते", "request_id": "fallback"}),
     ]
     monkeypatch.setattr(voice, "_dry_run", lambda: False)

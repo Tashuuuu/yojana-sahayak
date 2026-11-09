@@ -9,7 +9,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(ROOT / ".env")
+load_dotenv(ROOT / ".env", override=True)
 NLI_NAME = "MoritzLaurer/mDeBERTa-v3-base-xnli-multilingual-nli-2mil7"
 T_ENT = float(os.getenv("T_ENT", "0.60"))
 T_CON = float(os.getenv("T_CON", "0.50"))
@@ -112,23 +112,33 @@ def verify_answer(answer: str, chunks: list[dict], lang: str,
         premise_records.extend((chunk.get("chunk_id"), premise)
                                for premise in premises_for(chunk.get("text", "")))
 
+    scheme_of = {chunk.get("chunk_id"): chunk.get("scheme_id") for chunk in selected}
     results = []
     for sentence in sentences:
-        best_entailment = 0.0
-        best_contradiction = 0.0
-        best_chunk_id = None
+        # Track scores PER SCHEME. A rule from a different scheme (e.g. Ujjwala's
+        # "applicant must be a woman") must never "contradict" a PM-KISAN sentence.
+        per_scheme: dict[Any, dict[str, Any]] = {}
         for start in range(0, len(premise_records), NLI_BATCH_SIZE):
             batch = premise_records[start:start + NLI_BATCH_SIZE]
             scores = nli_batch([premise for _, premise in batch], sentence)
             for (chunk_id, _), score in zip(batch, scores):
+                bucket = per_scheme.setdefault(
+                    scheme_of.get(chunk_id), {"ent": 0.0, "con": 0.0, "chunk": None})
                 entailment = score.get("entailment", 0.0)
-                contradiction = score.get("contradiction", 0.0)
-                if entailment > best_entailment:
-                    best_entailment = entailment
-                    best_chunk_id = chunk_id
-                best_contradiction = max(best_contradiction, contradiction)
-        # A contradiction in any of the retrieved evidence must override a separate
-        # entailment match; otherwise conflicting official text could be spoken as safe.
+                if entailment > bucket["ent"]:
+                    bucket["ent"] = entailment
+                    bucket["chunk"] = chunk_id
+                bucket["con"] = max(bucket["con"], score.get("contradiction", 0.0))
+        # Judge the sentence against the scheme that supports it best; contradictions
+        # inside THAT scheme's text still override entailment (safety kept).
+        if per_scheme:
+            home = max(per_scheme.values(), key=lambda b: b["ent"])
+            best_entailment, best_contradiction, best_chunk_id = home["ent"], home["con"], home["chunk"]
+            if best_entailment < t_ent:  # nothing supports it: be strict, use worst case anywhere
+                best_contradiction = max(b["con"] for b in per_scheme.values())
+        else:
+            best_entailment = best_contradiction = 0.0
+            best_chunk_id = None
         if best_contradiction >= t_con:
             label = "Contradicted"
         elif best_entailment >= t_ent:

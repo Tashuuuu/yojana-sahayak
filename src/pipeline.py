@@ -18,7 +18,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(ROOT / ".env")
+load_dotenv(ROOT / ".env", override=True)
 
 from src.generate import generate_answer, requires_explanation, translate_verified_answer  # noqa: E402
 from src.retrieve import retrieve  # noqa: E402

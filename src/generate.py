@@ -13,7 +13,7 @@ from typing import Iterable
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(ROOT / ".env")
+load_dotenv(ROOT / ".env", override=True)
 _CLIENT = None
 _CLIENT_CONFIG: tuple[str, str, str] | None = None
 
@@ -297,6 +297,17 @@ def translate(text: str, lang: str) -> str:
 
 
 
+_DEVANAGARI_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
+
+
+def _numbers(value: str) -> list[str]:
+    """Numbers in a text, normalised so Rs6,000 / ₹6000 / ६,००० all compare equal."""
+    value = (value or "").translate(_DEVANAGARI_DIGITS)
+    found = re.findall(r"(?<![\d,.])\d[\d,]*(?:\.\d+)?", value)
+    cleaned = [item.replace(",", "").rstrip(".") for item in found]
+    return sorted(item[:-2] if item.endswith(".0") else item for item in cleaned)
+
+
 def requires_explanation(query: str) -> bool:
     """Public helper used by the pipeline to enforce useful broad answers."""
     return _is_about_scheme_request(query)
@@ -352,9 +363,7 @@ def translate_verified_answer(text: str, target_lang: str, source_lang: str) -> 
         if not _looks_complete(translated, require_explanation=len(source_sentences) >= 2):
             return "NO_ANSWER"
         # Ask the model to keep numbers literal, then enforce that contract.
-        source_numbers = re.findall(r"(?<!\w)\d[\d,]*(?:\.\d+)?", text)
-        target_numbers = re.findall(r"(?<!\w)\d[\d,]*(?:\.\d+)?", translated)
-        if source_numbers != target_numbers:
+        if _numbers(text) != _numbers(translated):
             return "NO_ANSWER"
         if target_lang == "hi":
             letters = re.findall(r"[A-Za-z\u0900-\u097f]", translated)

@@ -8,9 +8,10 @@ import streamlit as st
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent
-load_dotenv(ROOT / ".env")
+load_dotenv(ROOT / ".env", override=True)
 
 from src.pipeline import answer_audio, answer_question  # noqa: E402
+from src.voice import read_call_log  # noqa: E402
 
 st.set_page_config(page_title="Yojana Sahayak — Voice Edition", page_icon="🎙️", layout="wide")
 st.title("Yojana Sahayak — Voice Edition")
@@ -23,9 +24,25 @@ with st.sidebar:
         st.warning("DRY RUN is ON. No Gnani or LLM API calls are made. Voice and answers are simulated from local source text.")
     else:
         st.success("DRY RUN is OFF. A voice question sends audio to Gnani Prisma STT. Timbre is called only when audio output is enabled and is not served from cache.")
+    def _has(name: str) -> str:
+        return "set" if os.getenv(name, "").strip() and "your_" not in os.getenv(name, "") else "MISSING"
+    st.caption(
+        f"DRY_RUN={os.getenv('DRY_RUN', '0')!r} · Gnani STT key: {_has('GNANI_STT_API_KEY')} · "
+        f"Gnani TTS key: {_has('GNANI_TTS_API_KEY')} · Groq key: {_has('GROQ_API_KEY')}"
+    )
     typed_language = st.radio("Typed question language", ["Hindi", "English"], horizontal=True)
-    generate_audio = st.checkbox("Generate spoken answer (Gnani Timbre; may use credits)", value=False)
-    st.caption("For typed questions, leave this unchecked to avoid TTS requests. Voice transcription still uses Prisma when DRY RUN is OFF.")
+    generate_audio = st.checkbox("Speak the verified answer (Gnani Timbre TTS)", value=True)
+    fresh_tts = st.checkbox("Always call Timbre (ignore audio cache)", value=True,
+                            help="Cached audio costs no credits, so a repeated question will not reduce your balance.")
+    os.environ["TTS_CACHE"] = "0" if fresh_tts else "1"
+    st.caption("Gnani credits are spent ONLY by: (1) a recorded voice question (Prisma STT) and (2) spoken answers (Timbre TTS). "
+               "Typed questions with audio off use Groq only, never Gnani.")
+    with st.expander("Real Gnani calls made by this app"):
+        calls = read_call_log()
+        if not calls:
+            st.write("No real Gnani request has been made yet.")
+        for row in reversed(calls):
+            st.write(row)
     st.divider()
     st.subheader("About this assistant")
     st.write("The application retrieves official scheme passages, generates an answer from that evidence, then checks each sentence with multilingual NLI.")
