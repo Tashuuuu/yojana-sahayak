@@ -7,6 +7,7 @@ import src.voice as voice
 
 class FakeResponse:
     status_code = 200
+    ok = True
     headers = {"Content-Type": "audio/wav"}
 
     def __init__(self, content):

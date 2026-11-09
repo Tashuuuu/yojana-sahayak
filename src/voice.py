@@ -15,11 +15,42 @@ import requests
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(ROOT / ".env")
+load_dotenv(ROOT / ".env", override=True)  # .env must beat stale shell variables such as DRY_RUN=1
 STT_URL = os.getenv("GNANI_STT_URL", "https://api.vachana.ai/stt/v3").strip()
 TTS_URL = os.getenv("GNANI_TTS_URL", "https://api.vachana.ai/api/v1/tts/inference").strip()
 CACHE_DIR = ROOT / ".cache" / "tts"
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+CALL_LOG = ROOT / ".cache" / "gnani_calls.jsonl"
+
+
+def log_call(service: str, **info: Any) -> None:
+    """Append one line per REAL Gnani request so the UI can show proof of usage."""
+    try:
+        CALL_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with CALL_LOG.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"t": time.strftime("%H:%M:%S"), "service": service, **info},
+                                    ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def read_call_log(limit: int = 20) -> list[dict]:
+    if not CALL_LOG.exists():
+        return []
+    rows = []
+    for line in CALL_LOG.read_text(encoding="utf-8").splitlines()[-limit:]:
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return rows
+
+
+def _api_error(response: requests.Response, service: str) -> RuntimeError:
+    """Readable error that includes Gnani's own message (401/402/403/429 etc.)."""
+    hint = {401: "API key missing/invalid", 402: "insufficient credits", 403: "key lacks scope or credits",
+            429: "rate limited (1 active request at a time)"}.get(response.status_code, "")
+    return RuntimeError(f"Gnani {service} HTTP {response.status_code} {hint}: {(response.text or '')[:300]}")
 
 
 def _env(name: str, default: str = "") -> str:
@@ -113,7 +144,7 @@ def transcribe(
     # Current Prisma v3 REST uses language_code=indic-auto plus multi_lang_codes
     # as the 2-4 language candidates. The public project contract still calls
     # these user-supplied values "keyterms"; Gnani's current REST field is "keywords".
-    language_code = language_code or _env("PRISMA_LANGUAGE_CODE", "indic-auto")
+    language_code = language_code or _env("PRISMA_LANGUAGE_CODE", "hi-IN,en-IN")
     if _dry_run():
         return {"text": "पीएम किसान में कौन आवेदन कर सकता है?", "lang": "hi",
                 "detected_language_code": "hi-IN", "request_id": "dry-run"}
@@ -129,14 +160,8 @@ def transcribe(
     }
     keyterms_value = _clean_keyterms(keyterms)
     if keyterms_value:
-        # Current Gnani Prisma v3 REST field name (SDK: keywords).
-        data["keywords"] = keyterms_value
-    if model == "prisma-v3.0" and language_code == "indic-auto":
-        candidates = _env("PRISMA_LANGUAGE_CANDIDATES", "hi-IN,en-IN")
-        candidate_list = [item.strip() for item in candidates.split(",") if item.strip()]
-        if not 2 <= len(candidate_list) <= 4:
-            raise ValueError("PRISMA_LANGUAGE_CANDIDATES must contain 2-4 comma-separated language codes")
-        data["multi_lang_codes"] = ",".join(candidate_list)
+        # Documented REST field for Prisma v3.0 is `keyterms` (JSON array, up to 200).
+        data["keyterms"] = keyterms_value
     headers = {"X-API-Key-ID": _secret("GNANI_STT_API_KEY")}
     response = _post_with_retry(
         STT_URL, headers=headers,
@@ -146,9 +171,9 @@ def transcribe(
     used_v25_fallback = False
 
     # The project synopsis specifies Prisma v2.5 as a model fallback by omitting `model`.
-    response_mentions_model = "model" in (response.text or "").lower()
-    if response.status_code in {400, 404, 422} and response_mentions_model \
-            and _env("PRISMA_V25_FALLBACK", "1") == "1":
+    # Fall back to v2.5 ONLY when Gnani says the model name itself is invalid.
+    model_rejected = response.status_code == 400 and "INVALID_MODEL" in (response.text or "")
+    if model_rejected and _env("PRISMA_V25_FALLBACK", "1") == "1":
         # Prisma v2.5 does not support indic-auto, language candidates, or v3 keywords.
         # Its fallback language therefore must be configured explicitly.
         fallback_language = _env("PRISMA_V25_LANGUAGE_CODE", "hi-IN")
@@ -160,7 +185,8 @@ def transcribe(
         )
         used_v25_fallback = True
 
-    response.raise_for_status()
+    if not response.ok:
+        raise _api_error(response, "Prisma STT")
     try:
         body = response.json()
     except ValueError as exc:
@@ -174,6 +200,8 @@ def transcribe(
     if not detected:
         detected = (fallback_language if used_v25_fallback
                     else ("hi-IN" if _lang_short("", transcript) == "hi" else "en-IN"))
+    log_call("STT", model=str(body.get("model") or model), request_id=str(body.get("request_id") or ""),
+             seconds=round(duration, 1))
     return {
         "text": transcript,
         "lang": _lang_short(detected, transcript),
@@ -203,7 +231,7 @@ def prep_for_tts(text: str, lang: str = "hi") -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def speak(text: str, lang: str = "hi", *, use_cache: bool = True) -> bytes:
+def speak(text: str, lang: str = "hi", *, use_cache: bool | None = None) -> bytes:
     """Speak text with Gnani Timbre v2.5 and return validated WAV bytes."""
     lang = "hi" if str(lang).lower().startswith("hi") else "en"
     speech_text = prep_for_tts(text, lang)
@@ -211,6 +239,8 @@ def speak(text: str, lang: str = "hi", *, use_cache: bool = True) -> bytes:
         raise ValueError("Timbre received empty text.")
     if _dry_run():
         return _silent_wav()
+    if use_cache is None:
+        use_cache = _env("TTS_CACHE", "1") != "0"
 
     cache_key = hashlib.sha256(f"timbre-v2.5|{lang}|{speech_text}".encode("utf-8")).hexdigest()
     cache_file = CACHE_DIR / f"{cache_key}.wav"
@@ -240,13 +270,15 @@ def speak(text: str, lang: str = "hi", *, use_cache: bool = True) -> bytes:
         headers={"X-API-Key-ID": _secret("GNANI_TTS_API_KEY"), "Content-Type": "application/json"},
         json=payload, timeout=(15, 60),
     )
-    response.raise_for_status()
+    if not response.ok:
+        raise _api_error(response, "Timbre TTS")
     audio = response.content
     if not audio or audio[:4] != b"RIFF" or audio[8:12] != b"WAVE":
         raise RuntimeError(
             "Timbre did not return WAV audio. "
             f"Content-Type={response.headers.get('Content-Type', 'unknown')}"
         )
+    log_call("TTS", voice=voice, chars=len(speech_text))
     if use_cache:
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
         cache_file.write_bytes(audio)
