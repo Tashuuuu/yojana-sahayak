@@ -32,13 +32,33 @@ def split_sentences(text: str) -> list[str]:
     return [p.strip() for p in parts if len(p.strip()) > 3]
 
 
+def premises_for(text: str) -> list[str]:
+    """Texts the answer sentence is checked against: the whole chunk, each sentence of it,
+    and each pair of neighbouring sentences. Short premises are easier for the NLI model
+    than a long paragraph, so a sentence copied from a chunk is no longer missed."""
+    sentences = split_sentences(text)
+    candidates = [text.strip()] + sentences + [f"{a} {b}" for a, b in zip(sentences, sentences[1:])]
+    seen, unique = set(), []
+    for p in candidates:
+        if p and p not in seen:
+            seen.add(p)
+            unique.append(p)
+    return unique
+
+
 @torch.no_grad()
-def nli(premise: str, hypothesis: str) -> dict:
-    """Return {'entailment': p, 'neutral': p, 'contradiction': p} for one premise/hypothesis pair."""
+def nli_batch(premises: list[str], hypothesis: str) -> list[dict]:
+    """One NLI result per premise: {'entailment': p, 'neutral': p, 'contradiction': p}."""
     tok, model, id2label = _load()
-    enc = tok(premise, hypothesis, truncation="only_first", max_length=512, return_tensors="pt")
-    probs = torch.softmax(model(**enc).logits, dim=-1)[0]
-    return {id2label[i]: float(probs[i]) for i in range(len(probs))}
+    enc = tok(premises, [hypothesis] * len(premises), truncation="only_first",
+              max_length=512, padding=True, return_tensors="pt")
+    probs = torch.softmax(model(**enc).logits, dim=-1)
+    return [{id2label[i]: float(row[i]) for i in range(len(row))} for row in probs]
+
+
+def nli(premise: str, hypothesis: str) -> dict:
+    """NLI result for one premise/hypothesis pair."""
+    return nli_batch([premise], hypothesis)[0]
 
 
 def verify_answer(answer: str, chunks: list[dict], lang: str,
@@ -54,10 +74,13 @@ def verify_answer(answer: str, chunks: list[dict], lang: str,
     for sentence in split_sentences(answer):
         best_e, best_c, best_id = 0.0, 0.0, None
         for chunk in use:
-            p = nli(chunk["text"], sentence)
-            if p.get("entailment", 0.0) > best_e:
-                best_e, best_id = p["entailment"], chunk["chunk_id"]
-            best_c = max(best_c, p.get("contradiction", 0.0))
+            premises = premises_for(chunk["text"])
+            if not premises:
+                continue
+            for p in nli_batch(premises, sentence):
+                if p.get("entailment", 0.0) > best_e:
+                    best_e, best_id = p["entailment"], chunk["chunk_id"]
+                best_c = max(best_c, p.get("contradiction", 0.0))
 
         if best_e >= t_ent:
             label = "Supported"
