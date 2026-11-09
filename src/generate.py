@@ -142,13 +142,12 @@ def _is_conditions_list_request(query: str) -> bool:
     """Detect queries asking for a list of multiple eligibility/document conditions."""
     query = (query or "").casefold()
     patterns = (
-        # English
-        r"\bwhat\b.*\b(conditions?|requirements?|criteria|documents?|eligib)\b",
-        r"\b(conditions?|requirements?|criteria|documents?)\b.*\b(need|must|require|fulfill|meet)\b",
-        r"\bwhich\b.*\b(conditions?|requirements?|documents?|eligib)\b",
-        # Hindi — शर्तें, दस्तावेज़, पात्रता, कौन-सी, आवश्यकता
-        r"शर्त", r"दस्तावेज़", r"दस्तावेज", r"पात्रता शर्त", r"कौन.सी.*शर्त",
-        r"कौन.से.*दस्तावेज", r"आवश्यकता", r"क्या.क्या चाहिए", r"क्या.क्या होना चाहिए",
+        # English: eligibility, criteria, requirements, conditions, documents, who is eligible
+        r"\b(who|what|which)\b.*\b(conditions?|requirements?|criteria|documents?|eligible|eligibility|qualify|qualifies|apply|applies)\b",
+        r"\b(conditions?|requirements?|criteria|documents?|eligibility|exclusions?)\b",
+        # Hindi — शर्तें, दस्तावेज़, पात्रता, कौन पात्र, अपात्र, आवश्यकता
+        r"शर्त", r"दस्तावेज़", r"दस्तावेज", r"पात्रता", r"अपात्र", r"पात्र",
+        r"आवश्यकता", r"क्या.क्या चाहिए", r"क्या.क्या होना चाहिए",
     )
     return any(re.search(pattern, query) for pattern in patterns)
 
@@ -213,10 +212,10 @@ def _system_prompt(language_name: str, *, require_explanation: bool,
                    conditions_list: bool = False, retry: bool = False) -> str:
     if conditions_list:
         depth = (
-            "The question asks for multiple conditions, requirements, or documents. "
-            "Write each condition as its OWN complete sentence — do NOT join multiple conditions "
-            "with 'and' (और), commas, or semicolons into a single long sentence. "
-            "Copy each evidence sentence that states a condition almost verbatim, in order. "
+            "The question asks for eligibility, conditions, requirements, or documents. "
+            "Write each fact, condition, or excluded category as its OWN complete sentence — do NOT join multiple conditions "
+            "or eligibility criteria with 'and' (और), 'provided that', commas, or semicolons into a single long compound sentence. "
+            "Copy each evidence sentence that states who is eligible or excluded almost verbatim, in order. "
             "Use two to three sentences total."
         )
     elif require_explanation:
