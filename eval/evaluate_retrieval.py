@@ -1,110 +1,56 @@
+"""Calculate retrieval Hit@3 and MRR over eval/eval_questions.jsonl."""
+from __future__ import annotations
 
 import json
 import sys
 from pathlib import Path
 
-# Add project root to Python path
-BASE_DIR = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(BASE_DIR))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from src.retrieve import retrieve  # noqa: E402
 
-from src.retrieve import retrieve
-
-QUESTIONS_PATH = BASE_DIR / "eval" / "questions.jsonl"
-RESULTS_PATH = BASE_DIR / "results" / "retrieval_evaluation.json"
-
-TOP_K = 3
+QUESTIONS = ROOT / "eval" / "eval_questions.jsonl"
+OUTPUT = ROOT / "results" / "retrieval_evaluation.json"
 
 
-def load_questions():
-    """Load manually labelled evaluation questions."""
-    questions = []
-
-    with open(QUESTIONS_PATH, "r", encoding="utf-8") as file:
-        for line in file:
-            if line.strip():
-                questions.append(json.loads(line))
-
-    return questions
-
-
-def evaluate():
-    questions = load_questions()
-
-    if not questions:
-        raise ValueError("No evaluation questions found.")
-
+def main() -> None:
+    questions = [json.loads(line) for line in QUESTIONS.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+    answerable = [item for item in questions if item.get("answerable")]
+    if not answerable:
+        raise SystemExit("No answerable questions found in eval/eval_questions.jsonl")
+    rows = []
     reciprocal_ranks = []
-    hit_count = 0
-    detailed_results = []
-
-    print("\nRETRIEVAL EVALUATION")
-    print("=" * 55)
-
-    for question_data in questions:
-        query = question_data["question"]
-        relevant_ids = set(question_data["relevant_chunk_ids"])
-
-        # Retrieve top 3 chunks
-        retrieved = retrieve(query, top_k=TOP_K)
-
-        retrieved_ids = [
-            item["chunk_id"] for item in retrieved
-        ]
-
-        # Find the rank of the first relevant result
-        reciprocal_rank = 0.0
-
-        for rank, chunk_id in enumerate(retrieved_ids, start=1):
-            if chunk_id in relevant_ids:
-                reciprocal_rank = 1.0 / rank
+    for item in answerable:
+        hits = retrieve(item["question"], k=3, lang=item.get("lang"))
+        gold_scheme = item.get("gold_scheme_id")
+        gold_section = item.get("gold_section")
+        rank = None
+        for position, chunk in enumerate(hits, 1):
+            same_scheme = chunk.get("scheme_id") == gold_scheme
+            same_section = not gold_section or str(chunk.get("section", "")).casefold() == str(gold_section).casefold()
+            if same_scheme and same_section:
+                rank = position
                 break
-
-        # Hit@3: at least one relevant result in top 3
-        hit = reciprocal_rank > 0
-
-        if hit:
-            hit_count += 1
-
-        reciprocal_ranks.append(reciprocal_rank)
-
-        detailed_results.append({
-            "question": query,
-            "relevant_chunk_ids": list(relevant_ids),
-            "retrieved_chunk_ids": retrieved_ids,
-            "hit_at_3": hit,
-            "reciprocal_rank": reciprocal_rank
+        rr = 1.0 / rank if rank else 0.0
+        reciprocal_ranks.append(rr)
+        rows.append({
+            "qid": item.get("qid"), "question": item["question"],
+            "gold_scheme_id": gold_scheme, "gold_section": gold_section,
+            "retrieved_chunk_ids": [chunk.get("chunk_id") for chunk in hits],
+            "retrieved_schemes": [chunk.get("scheme_id") for chunk in hits],
+            "rank": rank, "hit_at_3": rank is not None, "reciprocal_rank": rr,
         })
-
-        print(f"\nQuestion: {query}")
-        print("Retrieved:", retrieved_ids)
-        print("Hit@3:", hit)
-        print("Reciprocal Rank:", reciprocal_rank)
-
-    # Calculate aggregate metrics
-    hit_at_3 = hit_count / len(questions)
-    mrr = sum(reciprocal_ranks) / len(questions)
-
-    evaluation = {
-        "total_questions": len(questions),
-        "top_k": TOP_K,
-        "hit_at_3": hit_at_3,
-        "mrr": mrr,
-        "details": detailed_results
+    report = {
+        "n_answerable": len(answerable),
+        "top_k": 3,
+        "hit_at_3": round(sum(value > 0 for value in reciprocal_ranks) / len(reciprocal_ranks), 4),
+        "mrr_at_3": round(sum(reciprocal_ranks) / len(reciprocal_ranks), 4),
+        "details": rows,
     }
-
-    RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(RESULTS_PATH, "w", encoding="utf-8") as file:
-        json.dump(evaluation, file, indent=4, ensure_ascii=False)
-
-    print("\n" + "=" * 55)
-    print("FINAL EVALUATION RESULTS")
-    print("=" * 55)
-    print(f"Total questions: {len(questions)}")
-    print(f"Hit@3: {hit_at_3:.4f} ({hit_at_3 * 100:.2f}%)")
-    print(f"MRR: {mrr:.4f}")
-    print(f"Results saved to: {RESULTS_PATH}")
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    OUTPUT.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
-    evaluate()
+    main()

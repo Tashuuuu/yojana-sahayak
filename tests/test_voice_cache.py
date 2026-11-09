@@ -1,37 +1,52 @@
-# tests/test_voice_cache.py — free: proves a repeated sentence is not sent to Gnani twice (the network is faked)
+"""Timbre cache test using a mocked HTTP response."""
+import io
+import wave
+
 import src.voice as voice
 
 
 class FakeResponse:
     status_code = 200
-    content = b"RIFF-fake-audio"
+    ok = True
+    headers = {"Content-Type": "audio/wav"}
+
+    def __init__(self, content):
+        self.content = content
+        self.text = ""
 
     def raise_for_status(self):
         pass
 
 
-def test_speak_is_cached(tmp_path, monkeypatch):
+def make_wav():
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(24000)
+        out.writeframes(b"\x00\x00" * 2400)
+    return buffer.getvalue()
+
+
+def test_tts_response_is_cached(tmp_path, monkeypatch):
     calls = []
-
-    def fake_post(*args, **kwargs):
-        calls.append(1)
-        return FakeResponse()
-
-    monkeypatch.setattr(voice, "DRY_RUN", False)      # other tests import voice in dry-run mode
-    monkeypatch.setattr(voice, "TTS_KEY", "test-key")
+    monkeypatch.setattr(voice, "_dry_run", lambda: False)
+    monkeypatch.setattr(voice, "_secret", lambda name: "test-key")
     monkeypatch.setattr(voice, "CACHE_DIR", tmp_path)
-    monkeypatch.setattr(voice.requests, "post", fake_post)
+    monkeypatch.setattr(voice, "_post_with_retry", lambda *a, **k: (
+        calls.append(1) or FakeResponse(make_wav())
+    ))
+    first = voice.speak("नमस्ते", "hi")
+    second = voice.speak("नमस्ते", "hi")
+    assert first == second
+    assert first[:4] == b"RIFF" and first[8:12] == b"WAVE"
+    assert len(calls) == 1
 
-    first = voice.speak("आपका आवेदन स्वीकार किया गया है।", "hi")
-    second = voice.speak("आपका आवेदन स्वीकार किया गया है।", "hi")
-    assert first == second == b"RIFF-fake-audio"
-    assert len(calls) == 1                             # the second call came from the cache
 
-
-def test_empty_text_does_not_call_the_service(monkeypatch):
-    def no_call(*args, **kwargs):
-        raise AssertionError("the service must not be called for empty text")
-
-    monkeypatch.setattr(voice, "DRY_RUN", False)
-    monkeypatch.setattr(voice.requests, "post", no_call)
-    assert voice.speak("   ", "hi")[:4] == b"RIFF"
+def test_empty_tts_text_is_rejected():
+    try:
+        voice.speak("   ", "hi")
+    except ValueError as exc:
+        assert "empty" in str(exc).lower()
+    else:
+        raise AssertionError("Expected empty-text validation")

@@ -1,9 +1,20 @@
 import base64
 import html
+import logging
+import os
 import sys
 from pathlib import Path
 
+# Keep the CPU inference stack stable under Streamlit on macOS. Set these
+# before importing Streamlit, NumPy, FAISS, tokenizers, or PyTorch.
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
@@ -141,6 +152,7 @@ UI_TEXT = {
         "no_sentence": "No answer sentence passed verification, so the assistant did not speak an answer.",
         "retrieved_info": "Retrieved official information",
         "no_passages": "No sufficiently relevant passages were found.",
+        "processing_error_details": "Processing failed before evidence could be displayed. See the Streamlit terminal for details.",
         "open_source": "Open official source ↗",
         "technical_details": "Technical details",
         "asked_voice": "Asked by voice",
@@ -188,6 +200,7 @@ UI_TEXT = {
         "no_sentence": "कोई वाक्य जाँच में समर्थित नहीं मिला, इसलिए जवाब बोलकर नहीं दिया गया।",
         "retrieved_info": "मिली हुई आधिकारिक जानकारी",
         "no_passages": "पर्याप्त रूप से संबंधित जानकारी नहीं मिली।",
+        "processing_error_details": "प्रक्रिया में समस्या आई, इसलिए स्रोत नहीं दिखाए जा सके। तकनीकी जानकारी के लिए Streamlit टर्मिनल देखें।",
         "open_source": "आधिकारिक स्रोत खोलें ↗",
         "technical_details": "तकनीकी विवरण",
         "asked_voice": "आवाज़ से पूछा गया",
@@ -244,11 +257,13 @@ def add_question(question: str, lang: str, source: str = "text") -> None:
             "voice_error": voice_error, "input_source": source,
         })
     except Exception as exc:
+        logger.exception("Question processing failed")
         st.session_state.messages.append({
             "role": "assistant",
             "content": tr("error"),
             "status": "refused", "chunks": [], "verification": {}, "audio": None,
-            "latency": {}, "voice_error": str(exc), "input_source": source,
+            "latency": {}, "voice_error": str(exc), "processing_error": True,
+            "input_source": source,
         })
 
 
@@ -315,7 +330,10 @@ def render_evidence(message) -> None:
     chunks = message.get("chunks", [])
     st.markdown(f"**{tr('retrieved_info')}**")
     if not chunks:
-        st.caption(tr("no_passages"))
+        if message.get("processing_error"):
+            st.caption(tr("processing_error_details"))
+        else:
+            st.caption(tr("no_passages"))
     else:
         for rank, chunk in enumerate(chunks, start=1):
             name = chunk.get("name_en") or chunk.get("scheme_id") or "Government scheme"
