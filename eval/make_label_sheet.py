@@ -1,75 +1,76 @@
-# eval/make_label_sheet.py — pick ~60 answer sentences for Bhawna to label BLIND (without seeing the model's label).
-# Usage (repo root):  python eval/make_label_sheet.py --n 60
+"""Create a blind human labelling sheet and private model-prediction file."""
+from __future__ import annotations
+
 import argparse
 import csv
 import json
 import random
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
 
 
-def load_jsonl(path: Path) -> list[dict]:
-    with open(path, encoding="utf-8-sig") as f:
-        return [json.loads(line) for line in f if line.strip()]
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sentences", default="results/eval_sentences.jsonl")
+    parser.add_argument("--n", type=int, default=60)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--force", action="store_true")
+    args = parser.parse_args()
+    label_path = ROOT / "eval" / "sentence_labels.csv"
+    prediction_path = ROOT / "results" / "_private_sentence_predictions.csv"
+    if args.n < 1:
+        parser.error("--n must be positive")
+    if not args.force and (label_path.exists() or prediction_path.exists()):
+        parser.error("Label files already exist. Use --force only when you intend to replace them.")
 
-
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--sentences", default="results/eval_sentences.jsonl")
-    ap.add_argument("--n", type=int, default=60)
-    ap.add_argument("--seed", type=int, default=42)
-    args = ap.parse_args()
-
-    items = []
-    for rec in load_jsonl(ROOT / args.sentences):
-        premise = " || ".join(f"[{c['chunk_id']}] {c['text']}" for c in rec["chunks"])
-        for s in rec["sentences"]:
-            items.append({"qid": rec["qid"], "sentence": s["text"], "premise": premise,
-                          "pred": s["label"], "entail": s["entail"], "contra": s["contra"]})
-    if not items:
-        sys.exit("No sentences found. Run eval/run_eval.py first (with DRY_RUN=0 and real retrieval).")
+    records = [json.loads(line) for line in (ROOT / args.sentences).read_text(encoding="utf-8-sig").splitlines()
+               if line.strip()]
+    candidates = []
+    for record in records:
+        premise = " || ".join(f"[{chunk.get('chunk_id')}] {chunk.get('text')}" for chunk in record.get("chunks", []))
+        for sentence in record.get("sentences", []):
+            candidates.append({
+                "qid": record.get("qid", ""), "sentence": sentence.get("text", ""),
+                "premise": premise, "pred": sentence.get("label", ""),
+                "entail": sentence.get("entail", 0.0), "contra": sentence.get("contra", 0.0),
+            })
+    if not candidates:
+        raise SystemExit("No generated sentences. Run `python -m eval.run_eval` first.")
 
     rng = random.Random(args.seed)
-    groups = {}
-    for it in items:
-        groups.setdefault(it["pred"], []).append(it)
-    for g in groups.values():
-        rng.shuffle(g)
+    groups: dict[str, list[dict]] = {}
+    for candidate in candidates:
+        groups.setdefault(candidate["pred"], []).append(candidate)
+    for group in groups.values():
+        rng.shuffle(group)
+    per_label = max(1, args.n // max(1, len(groups)))
+    selected = []
+    for group in groups.values():
+        selected.extend(group[:per_label])
+    remainder = [item for group in groups.values() for item in group[per_label:]]
+    rng.shuffle(remainder)
+    selected.extend(remainder[:max(0, args.n - len(selected))])
+    rng.shuffle(selected)
+    selected = selected[:args.n]
+    for index, item in enumerate(selected, 1):
+        item["sid"] = f"s{index:03d}"
 
-    quota = max(1, args.n // max(1, len(groups)))
-    chosen = []
-    for g in groups.values():
-        chosen += g[:quota]
-    rest = [it for g in groups.values() for it in g[quota:]]
-    rng.shuffle(rest)
-    chosen += rest[: max(0, args.n - len(chosen))]
-    rng.shuffle(chosen)  # so the order does not reveal the predicted label
-    chosen = chosen[: args.n]
-
-    for i, it in enumerate(chosen, start=1):
-        it["sid"] = f"s{i:03d}"
-
-    template = ROOT / "eval" / "sentence_labels_template.csv"
-    with open(template, "w", newline="", encoding="utf-8-sig") as f:
-        w = csv.writer(f)
-        w.writerow(["sid", "qid", "sentence", "premise", "label", "notes"])
-        for it in chosen:
-            w.writerow([it["sid"], it["qid"], it["sentence"], it["premise"], "", ""])
-
-    private = ROOT / "results" / "_private_sentence_predictions.csv"
-    with open(private, "w", newline="", encoding="utf-8-sig") as f:
-        w = csv.writer(f)
-        w.writerow(["sid", "pred_label", "entail", "contra"])
-        for it in chosen:
-            w.writerow([it["sid"], it["pred"], it["entail"], it["contra"]])
-
-    counts = {k: sum(1 for it in chosen if it["pred"] == k) for k in groups}
-    print(f"Wrote {len(chosen)} sentences to {template}")
-    print(f"Predictions (keep private until labelling is finished): {private}")
-    print("Sampled by predicted label:", counts)
+    label_path.parent.mkdir(parents=True, exist_ok=True)
+    prediction_path.parent.mkdir(parents=True, exist_ok=True)
+    with label_path.open("w", newline="", encoding="utf-8-sig") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["sid", "qid", "sentence", "premise", "label", "notes"])
+        for item in selected:
+            writer.writerow([item["sid"], item["qid"], item["sentence"], item["premise"], "", ""])
+    with prediction_path.open("w", newline="", encoding="utf-8-sig") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["sid", "pred_label", "entail", "contra"])
+        for item in selected:
+            writer.writerow([item["sid"], item["pred"], item["entail"], item["contra"]])
+    print(f"Created {label_path}")
+    print(f"Created private predictions at {prediction_path}; do not show these to the labeler.")
+    print("Fill label with Supported / Unsupported / Contradicted. Leave unsure cases blank.")
 
 
 if __name__ == "__main__":

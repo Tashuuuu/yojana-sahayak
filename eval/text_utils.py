@@ -1,10 +1,11 @@
-# eval/text_utils.py — small text helpers shared by the evaluation scripts and tests
+"""Unicode-safe evaluation text normalisation (preserves Hindi combining marks)."""
+from __future__ import annotations
+
 import unicodedata
 
 
 def normalise(text: str) -> str:
-    """Lowercase, drop punctuation and symbols (including the Hindi danda), collapse spaces.
-    Do NOT use the regex \\w for this: it does not treat Hindi vowel signs as letters and would delete them."""
-    text = unicodedata.normalize("NFC", text.lower())
-    text = "".join(ch for ch in text if not unicodedata.category(ch).startswith(("P", "S")))
-    return " ".join(text.split())
+    value = unicodedata.normalize("NFC", (text or "").lower())
+    value = "".join(char for char in value
+                    if not unicodedata.category(char).startswith(("P", "S")))
+    return " ".join(value.split())

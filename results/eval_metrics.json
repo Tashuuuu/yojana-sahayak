@@ -1,5 +1,5 @@
 {
-  "dry_run": false,
+  "dry_run": true,
   "retrieval_sources": [
     "real"
   ],
@@ -9,19 +9,19 @@
   "n_unanswerable": 18,
   "hit_at_3": 0.909,
   "mrr_at_3": 0.886,
-  "refusal_correct": 17,
+  "refusal_correct": 6,
   "refusal_total": 18,
-  "false_refusals_on_answerable": 6,
+  "false_refusals_on_answerable": 2,
   "status_counts": {
-    "verified": 13,
-    "partial": 4,
-    "refused": 23
+    "verified": 32,
+    "partial": 0,
+    "refused": 8
   },
-  "mean_groundedness_of_answered": 0.882,
+  "mean_groundedness_of_answered": 1.0,
   "median_seconds": {
-    "t_retrieve": 0.032,
-    "t_generate": 0.468,
-    "t_verify": 1.483,
-    "t_total": 2.091
+    "t_retrieve": 0.099,
+    "t_generate": 0.0,
+    "t_verify": 29.875,
+    "t_total": 31.12
   }
 }
