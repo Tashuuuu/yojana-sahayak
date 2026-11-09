@@ -107,7 +107,11 @@ def main() -> None:
                 "retrieved_on": record["retrieved_on"],
             })
         terms = keyterms.setdefault(record["scheme_id"], set())
-        terms.update(x for x in (record["scheme_id"], record["name_en"], record["name_hi"]) if x)
+        terms.update(
+            x for x in (
+                record["scheme_id"], record["name_en"], record["name_hi"], record["section"]
+            ) if x
+        )
         aliases = record.get("aliases", "")
         if aliases:
             terms.update(part.strip() for part in re.split(r"[,;|]", aliases) if part.strip())

@@ -1,99 +1,578 @@
 {
-    "total_questions": 7,
-    "top_k": 3,
-    "hit_at_3": 0.8571428571428571,
-    "mrr": 0.7857142857142857,
-    "details": [
-        {
-            "question": "How much money do farmers receive under PM KISAN?",
-            "relevant_chunk_ids": [
-                "PMKISAN_benefits_0"
-            ],
-            "retrieved_chunk_ids": [
-                "PMKISAN_benefits_0",
-                "PMKISAN_overview_0",
-                "PMKISAN_eligibility_0"
-            ],
-            "hit_at_3": true,
-            "reciprocal_rank": 1.0
-        },
-        {
-            "question": "How many instalments are provided under PM KISAN?",
-            "relevant_chunk_ids": [
-                "PMKISAN_benefits_0"
-            ],
-            "retrieved_chunk_ids": [
-                "PMKISAN_overview_0",
-                "PMKISAN_benefits_0",
-                "PMUY_benefits_and_documents_0"
-            ],
-            "hit_at_3": true,
-            "reciprocal_rank": 0.5
-        },
-        {
-            "question": "Who can apply for PM KISAN?",
-            "relevant_chunk_ids": [
-                "PMKISAN_eligibility_0"
-            ],
-            "retrieved_chunk_ids": [
-                "PMKISAN_overview_0",
-                "PMKISAN_benefits_0",
-                "PMUY_benefits_and_documents_0"
-            ],
-            "hit_at_3": false,
-            "reciprocal_rank": 0.0
-        },
-        {
-            "question": "What is the main objective of PM KISAN?",
-            "relevant_chunk_ids": [
-                "PMKISAN_overview_0"
-            ],
-            "retrieved_chunk_ids": [
-                "PMKISAN_overview_0",
-                "PMKISAN_benefits_0",
-                "PMUY_benefits_and_documents_0"
-            ],
-            "hit_at_3": true,
-            "reciprocal_rank": 1.0
-        },
-        {
-            "question": "What is the Ujjwala Yojana scheme?",
-            "relevant_chunk_ids": [
-                "PMUY_overview_0"
-            ],
-            "retrieved_chunk_ids": [
-                "PMUY_overview_0",
-                "PMKISAN_overview_0",
-                "PMUY_benefits_and_documents_0"
-            ],
-            "hit_at_3": true,
-            "reciprocal_rank": 1.0
-        },
-        {
-            "question": "What are the eligibility requirements for Ujjwala Yojana?",
-            "relevant_chunk_ids": [
-                "PMUY_eligibility_0"
-            ],
-            "retrieved_chunk_ids": [
-                "PMUY_eligibility_0",
-                "PMUY_overview_0",
-                "PMUY_benefits_and_documents_0"
-            ],
-            "hit_at_3": true,
-            "reciprocal_rank": 1.0
-        },
-        {
-            "question": "What documents are required for an LPG connection under PMUY?",
-            "relevant_chunk_ids": [
-                "PMUY_benefits_and_documents_0"
-            ],
-            "retrieved_chunk_ids": [
-                "PMUY_benefits_and_documents_0",
-                "PMUY_eligibility_0",
-                "PMUY_overview_0"
-            ],
-            "hit_at_3": true,
-            "reciprocal_rank": 1.0
-        }
-    ]
+  "n_answerable": 30,
+  "top_k": 3,
+  "hit_at_3": 1.0,
+  "mrr_at_3": 0.9611,
+  "details": [
+    {
+      "qid": "Q01",
+      "question": "What is the objective of PM-KISAN?",
+      "gold_scheme_id": "PMKISAN",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmkisan__en__overview__0",
+        "pmkisan__en__benefits__0",
+        "pmkisan__en__eligibility__0"
+      ],
+      "retrieved_schemes": [
+        "PMKISAN",
+        "PMKISAN",
+        "PMKISAN"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q02",
+      "question": "What is the main objective of Pradhan Mantri Ujjwala Yojana?",
+      "gold_scheme_id": "PMUY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmuy__en__overview__0",
+        "pmuy__en__eligibility__0",
+        "pmjdy__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMUY",
+        "PMUY",
+        "PMJDY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q03",
+      "question": "What is the purpose of Pradhan Mantri Fasal Bima Yojana?",
+      "gold_scheme_id": "PMFBY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmfby__en__overview__0",
+        "pmsby__en__overview__0",
+        "pmjdy__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMFBY",
+        "PMSBY",
+        "PMJDY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q04",
+      "question": "What does the Kisan Credit Card scheme help farmers access?",
+      "gold_scheme_id": "KCC",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "kcc__en__overview__0",
+        "pmkisan__en__benefits__0",
+        "pmkisan__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "KCC",
+        "PMKISAN",
+        "PMKISAN"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q05",
+      "question": "What is the purpose of Pradhan Mantri Kisan Maandhan Yojana?",
+      "gold_scheme_id": "PMKMY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmkmy__en__overview__0",
+        "pmkvy__en__overview__0",
+        "pmjdy__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMKMY",
+        "PMKVY",
+        "PMJDY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q06",
+      "question": "Who is Sukanya Samriddhi Yojana intended to support?",
+      "gold_scheme_id": "SSY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "ssy__en__overview__0",
+        "pmjay__en__overview__0",
+        "jsy__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "SSY",
+        "PMJAY",
+        "JSY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q07",
+      "question": "What kind of healthcare access does Ayushman Bharat PM-JAY provide?",
+      "gold_scheme_id": "PMJAY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmjay__en__overview__0",
+        "pmjay__hi__overview__0",
+        "pmjjby__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMJAY",
+        "PMJAY",
+        "PMJJBY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q08",
+      "question": "What does Janani Suraksha Yojana aim to promote?",
+      "gold_scheme_id": "JSY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "jsy__en__overview__0",
+        "pmsby__en__overview__0",
+        "ssy__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "JSY",
+        "PMSBY",
+        "SSY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q09",
+      "question": "Who does Mission Indradhanush focus on reaching with immunisation services?",
+      "gold_scheme_id": "MI",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "mi__en__overview__0",
+        "mi__hi__overview__0",
+        "sbm__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "MI",
+        "MI",
+        "SBM"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q10",
+      "question": "What is the objective of Pradhan Mantri Awas Yojana Gramin?",
+      "gold_scheme_id": "PMAYG",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmayg__en__overview__0",
+        "pmayu__en__overview__0",
+        "pmjdy__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMAYG",
+        "PMAYU",
+        "PMJDY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q11",
+      "question": "प्रधानमंत्री आवास योजना शहरी किन आवास आवश्यकताओं पर ध्यान देती है?",
+      "gold_scheme_id": "PMAYU",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmayu__hi__overview__0",
+        "pmayg__hi__overview__0",
+        "pmjdy__hi__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMAYU",
+        "PMAYG",
+        "PMJDY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q12",
+      "question": "स्वच्छ भारत मिशन किन क्षेत्रों में सुधार को प्रोत्साहित करता है?",
+      "gold_scheme_id": "SBM",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "sbm__hi__overview__0",
+        "mi__hi__overview__0",
+        "sbm__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "SBM",
+        "MI",
+        "SBM"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q13",
+      "question": "प्रधानमंत्री जन-धन योजना का मुख्य उद्देश्य क्या है?",
+      "gold_scheme_id": "PMJDY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmjdy__hi__overview__0",
+        "pmkmy__hi__overview__0",
+        "pmkisan__hi__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMJDY",
+        "PMKMY",
+        "PMKISAN"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q14",
+      "question": "अटल पेंशन योजना विशेष रूप से किन श्रमिकों पर ध्यान देती है?",
+      "gold_scheme_id": "APY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "apy__hi__overview__0",
+        "pmkmy__hi__overview__0",
+        "mgnrega__hi__overview__0"
+      ],
+      "retrieved_schemes": [
+        "APY",
+        "PMKMY",
+        "MGNREGA"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q15",
+      "question": "प्रधानमंत्री जीवन ज्योति बीमा योजना किस प्रकार का बीमा प्रदान करती है?",
+      "gold_scheme_id": "PMJJBY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmjjby__hi__overview__0",
+        "pmsby__hi__overview__0",
+        "pmfby__hi__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMJJBY",
+        "PMSBY",
+        "PMFBY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q16",
+      "question": "प्रधानमंत्री सुरक्षा बीमा योजना किस प्रकार की सुरक्षा प्रदान करती है?",
+      "gold_scheme_id": "PMSBY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmsby__hi__overview__0",
+        "pmjjby__hi__overview__0",
+        "pmfby__hi__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMSBY",
+        "PMJJBY",
+        "PMFBY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q17",
+      "question": "प्रधानमंत्री मुद्रा योजना किस प्रकार की सुविधा प्रदान करती है?",
+      "gold_scheme_id": "PMMY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmmy__hi__overview__0",
+        "pmjdy__hi__overview__0",
+        "pmayg__hi__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMMY",
+        "PMJDY",
+        "PMAYG"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q18",
+      "question": "मनरेगा किस प्रकार का रोजगार ढांचा प्रदान करता है?",
+      "gold_scheme_id": "MGNREGA",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "mgnrega__hi__overview__0",
+        "pmuy__hi__overview__0",
+        "pmayg__hi__overview__0"
+      ],
+      "retrieved_schemes": [
+        "MGNREGA",
+        "PMUY",
+        "PMAYG"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q19",
+      "question": "प्रधानमंत्री कौशल विकास योजना किसमें सहायता करती है?",
+      "gold_scheme_id": "PMKVY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmkvy__hi__overview__0",
+        "pmkisan__hi__overview__0",
+        "pmayg__hi__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMKVY",
+        "PMKISAN",
+        "PMAYG"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q20",
+      "question": "राष्ट्रीय साधन-सह-योग्यता छात्रवृत्ति योजना किन विद्यार्थियों की सहायता करना चाहती है?",
+      "gold_scheme_id": "NMMS",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "nmms__hi__overview__0",
+        "pmjdy__hi__overview__0",
+        "pmuy__hi__overview__0"
+      ],
+      "retrieved_schemes": [
+        "NMMS",
+        "PMJDY",
+        "PMUY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q21",
+      "question": "How much financial assistance does an eligible farmer family receive annually under PM-KISAN?",
+      "gold_scheme_id": "PMKISAN",
+      "gold_section": "benefits",
+      "retrieved_chunk_ids": [
+        "pmkisan__en__benefits__0",
+        "pmkisan__en__overview__0",
+        "pmkisan__en__eligibility__0"
+      ],
+      "retrieved_schemes": [
+        "PMKISAN",
+        "PMKISAN",
+        "PMKISAN"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q22",
+      "question": "How many instalments are used to transfer PM-KISAN assistance, and how much is each?",
+      "gold_scheme_id": "PMKISAN",
+      "gold_section": "benefits",
+      "retrieved_chunk_ids": [
+        "pmkisan__en__benefits__0",
+        "pmkisan__en__overview__0",
+        "pmkisan__en__eligibility__0"
+      ],
+      "retrieved_schemes": [
+        "PMKISAN",
+        "PMKISAN",
+        "PMKISAN"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q23",
+      "question": "When did PM-KISAN become operational?",
+      "gold_scheme_id": "PMKISAN",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmkisan__en__overview__0",
+        "pmkisan__en__benefits__0",
+        "pmkisan__en__eligibility__0"
+      ],
+      "retrieved_schemes": [
+        "PMKISAN",
+        "PMKISAN",
+        "PMKISAN"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q24",
+      "question": "पीएम-किसान योजना के अंतर्गत कौन से किसान परिवार पात्र होते हैं?",
+      "gold_scheme_id": "PMKISAN",
+      "gold_section": "eligibility",
+      "retrieved_chunk_ids": [
+        "pmkisan__hi__benefits__0",
+        "pmkisan__hi__overview__0",
+        "pmkisan__hi__eligibility__0"
+      ],
+      "retrieved_schemes": [
+        "PMKISAN",
+        "PMKISAN",
+        "PMKISAN"
+      ],
+      "rank": 3,
+      "hit_at_3": true,
+      "reciprocal_rank": 0.3333333333333333
+    },
+    {
+      "qid": "Q25",
+      "question": "पीएम-किसान योजना में किन श्रेणियों के लोग अपात्र हैं?",
+      "gold_scheme_id": "PMKISAN",
+      "gold_section": "eligibility",
+      "retrieved_chunk_ids": [
+        "pmkisan__hi__eligibility__0",
+        "pmkisan__hi__overview__0",
+        "pmkmy__hi__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMKISAN",
+        "PMKISAN",
+        "PMKMY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q26",
+      "question": "Who is eligible to apply for Pradhan Mantri Ujjwala Yojana?",
+      "gold_scheme_id": "PMUY",
+      "gold_section": "eligibility",
+      "retrieved_chunk_ids": [
+        "pmuy__en__overview__0",
+        "pmuy__en__eligibility__0",
+        "pmkvy__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMUY",
+        "PMUY",
+        "PMKVY"
+      ],
+      "rank": 2,
+      "hit_at_3": true,
+      "reciprocal_rank": 0.5
+    },
+    {
+      "qid": "Q27",
+      "question": "What documents are required for a PMUY application?",
+      "gold_scheme_id": "PMUY",
+      "gold_section": "benefits_and_documents",
+      "retrieved_chunk_ids": [
+        "pmuy__en__benefits-and-documents__0",
+        "pmuy__en__eligibility__0",
+        "pmuy__en__overview__0"
+      ],
+      "retrieved_schemes": [
+        "PMUY",
+        "PMUY",
+        "PMUY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q28",
+      "question": "उज्ज्वला योजना के अंतर्गत एलपीजी कनेक्शन के साथ क्या-क्या मिलता है?",
+      "gold_scheme_id": "PMUY",
+      "gold_section": "benefits_and_documents",
+      "retrieved_chunk_ids": [
+        "pmuy__hi__benefits-and-documents__0",
+        "pmuy__hi__overview__0",
+        "pmuy__hi__eligibility__0"
+      ],
+      "retrieved_schemes": [
+        "PMUY",
+        "PMUY",
+        "PMUY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q29",
+      "question": "उज्ज्वला योजना किस मंत्रालय के अंतर्गत संचालित होती है?",
+      "gold_scheme_id": "PMUY",
+      "gold_section": "overview",
+      "retrieved_chunk_ids": [
+        "pmuy__hi__overview__0",
+        "pmuy__hi__benefits-and-documents__0",
+        "pmuy__hi__eligibility__0"
+      ],
+      "retrieved_schemes": [
+        "PMUY",
+        "PMUY",
+        "PMUY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "qid": "Q30",
+      "question": "क्या कोई पुरुष अपने नाम से प्रधानमंत्री उज्ज्वला योजना के लिए आवेदन कर सकता है?",
+      "gold_scheme_id": "PMUY",
+      "gold_section": "eligibility",
+      "retrieved_chunk_ids": [
+        "pmuy__hi__eligibility__0",
+        "pmuy__hi__overview__0",
+        "pmuy__hi__benefits-and-documents__0"
+      ],
+      "retrieved_schemes": [
+        "PMUY",
+        "PMUY",
+        "PMUY"
+      ],
+      "rank": 1,
+      "hit_at_3": true,
+      "reciprocal_rank": 1.0
+    }
+  ]
 }

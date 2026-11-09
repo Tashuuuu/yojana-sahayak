@@ -29,7 +29,7 @@ def _provider() -> str:
 def _active_model() -> str:
     provider = _provider()
     if provider == "groq":
-        return _setting("LLM_MODEL", "llama-3.3-70b-versatile")
+        return _setting("LLM_MODEL", "openai/gpt-oss-120b")
     if provider == "ollama":
         return _setting("OLLAMA_MODEL", "llama3.1:8b")
     if provider == "gemini":
@@ -79,6 +79,7 @@ def _get_client():
 def _ask(system: str, user: str, max_tokens: int = 550) -> str:
     provider = _provider()
     model = _active_model()
+    request_options = {"reasoning_effort": "low"} if provider == "groq" and "gpt-oss" in model else {}
     try:
         response = _get_client().chat.completions.create(
             model=model,
@@ -88,6 +89,7 @@ def _ask(system: str, user: str, max_tokens: int = 550) -> str:
             ],
             temperature=0,
             max_tokens=max_tokens,
+            **request_options,
         )
     except Exception as exc:
         detail = str(exc)
@@ -272,16 +274,38 @@ def generate_answer(query: str, chunks: list[dict], lang: str) -> str:
     return " ".join(sentences[:3]) if sentences else "NO_ANSWER"
 
 
+
 def to_english(text: str) -> str:
-    """Compatibility helper retained for older project scripts."""
-    if not text.strip() or _dry_run():
+    """Translate a Hindi search query while preserving known official names."""
+    if _dry_run() or not text.strip():
         return text
-    return _ask(
-        "Translate the question into concise English for search only. Preserve names and intent. "
-        "Do not answer it. Return translation only.",
-        text,
-        max_tokens=120,
-    ) or text
+
+    # Keep known official names intact before asking the configured provider
+    # to translate the rest of the query.
+    scheme_names = {
+        "प्रधानमंत्री सुरक्षा बीमा योजना":
+            "Pradhan Mantri Suraksha Bima Yojana (PMSBY)",
+        "राष्ट्रीय साधन-सह-योग्यता छात्रवृत्ति योजना":
+            "National Means-cum-Merit Scholarship Scheme (NMMS)",
+    }
+
+    translated_input = text
+    for hindi_name, official_name in scheme_names.items():
+        translated_input = translated_input.replace(
+            hindi_name, official_name
+        )
+
+    try:
+        return _ask(
+            "Translate the question into concise English for search only. "
+            "Preserve official scheme names, their English spellings, abbreviations, and intent. "
+            "Do not answer it or add facts. Return translation only.",
+            translated_input,
+            max_tokens=120,
+        ) or translated_input
+    except Exception:
+        # Retrieval can still use the prepared query if translation is unavailable.
+        return translated_input
 
 
 def translate(text: str, lang: str) -> str:

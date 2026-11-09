@@ -136,13 +136,34 @@ def _load_index():
         raise RuntimeError("Could not load or build the FAISS index")
     return _index, _chunks
 
+def detect_scheme(query: str) -> str | None:
+    """Identify a government scheme mentioned in the query."""
+
+    q = (query or "").casefold().replace("_", " ").strip()
+
+    scheme_aliases = {
+        "PMKISAN": [
+            "pm-kisan", "pm kisan", "pmkisan", "kisan samman nidhi",
+            "प्रधानमंत्री किसान सम्मान निधि", "पीएम किसान",
+        ],
+        "PMUY": [
+            "pmuy", "ujjwala", "pradhan mantri ujjwala",
+            "प्रधानमंत्री उज्ज्वला", "उज्ज्वला योजना",
+        ]
+    }
+
+    for scheme_id, aliases in scheme_aliases.items():
+        if any(alias in q for alias in aliases):
+            return scheme_id
+
+    return None
+
 
 def retrieve(query: str, k: int = TOP_K, lang: str | None = None,
              *, top_k: int | None = None) -> list[dict[str, Any]]:
-    """Return relevant chunks; language preference is a small score boost, not a hard reorder.
+    """Return relevant chunks with soft language and recognized-scheme preferences.
 
-    This prevents one weak same-language match from outranking substantially
-    more relevant cross-language evidence when Hindi/English coverage is uneven.
+    Preferences adjust ranking only; they never remove otherwise relevant passages.
     `top_k` remains an alias for older evaluation scripts.
     """
     if top_k is not None:
@@ -152,6 +173,7 @@ def retrieve(query: str, k: int = TOP_K, lang: str | None = None,
     import numpy as np
 
     index, chunks = _load_index()
+    scheme_id = detect_scheme(query)
     vector = load_model().encode(
         [f"query: {query.strip()}"], convert_to_numpy=True, normalize_embeddings=True
     )
@@ -167,12 +189,15 @@ def retrieve(query: str, k: int = TOP_K, lang: str | None = None,
         item = dict(chunks[position])
         raw_score = float(score)
         preferred_language = lang in {"hi", "en"} and item.get("lang") == lang
-        # A small bonus breaks near-ties in favour of the requested language while
-        # preserving a strong semantic match in the other language.
+        scheme_match = bool(scheme_id and str(item.get("scheme_id", "")).casefold() == scheme_id.casefold())
+        # These bonuses only reorder candidates; raw similarity remains available
+        # for relevance thresholds and diagnostics.
         adjusted_score = raw_score + (0.025 if preferred_language else 0.0)
+        adjusted_score += 0.05 if scheme_match else 0.0
         item["score"] = raw_score
         item["similarity_score"] = raw_score
         item["language_match"] = bool(preferred_language)
+        item["scheme_match"] = scheme_match
         item["ranking_score"] = adjusted_score
         ranked.append(item)
 
@@ -190,7 +215,6 @@ def retrieve(query: str, k: int = TOP_K, lang: str | None = None,
         if len(selected) >= k:
             break
     return selected
-
 
 if __name__ == "__main__":
     build_index()

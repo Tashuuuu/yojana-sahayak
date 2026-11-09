@@ -38,6 +38,23 @@ def _min_similarity() -> float:
         return 0.25
 
 
+def enrich_search_query(query: str) -> str:
+    """Add retrieval terms for PMUY eligibility questions, without answering them."""
+    q = (query or "").casefold()
+    pmuy_terms = (
+        "ujjwala", "pmuy", "pradhan mantri ujjwala", "प्रधानमंत्री उज्ज्वला", "उज्ज्वला",
+    )
+    eligibility_terms = (
+        "eligib", "qualif", "who can", "applicant", "apply", "age", "woman", "women",
+        "महिला", "पात्र", "पात्रता", "योग्य", "कौन", "आवेदन", "लाभार्थी",
+    )
+    if any(term in q for term in pmuy_terms) and any(term in q for term in eligibility_terms):
+        # These are search hints only. Generation still receives the user's original query
+        # and can state facts only when they appear in retrieved source passages.
+        return f"{query} PMUY eligibility applicant age woman household"
+    return query
+
+
 def load_scheme_keyterms() -> list[str]:
     """Read bilingual scheme names and aliases written by src.ingest."""
     path = ROOT / "data" / "keyterms.json"
@@ -165,8 +182,11 @@ def answer_question(
         return _refuse(query, lang, [], empty, latency, make_audio=make_audio,
                        reason="Please enter a question.")
 
+    # Keep main's bilingual retrieval flow; apply the feature-branch PMUY hint
+    # only to the retrieval query, never to the user's prompt for answer generation.
+    search_query = enrich_search_query(query)
     started = time.perf_counter()
-    retrieved = retrieve(query, k=max(8, int(k)), lang=lang)
+    retrieved = retrieve(search_query, k=max(8, int(k)), lang=lang)
     latency["retrieve"] = round(time.perf_counter() - started, 4)
 
     minimum = _min_similarity()
