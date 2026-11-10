@@ -3,7 +3,6 @@
 > **"Ask in your language. Hear only what's verified."**  
 > *अपनी भाषा में पूछें · केवल सत्यापित जानकारी सुनें*
 
-<<<<<<< Updated upstream
 Yojana Sahayak is a voice-first assistant for Indian government welfare schemes. It answers from official scheme text, checks every sentence of its own answer, and speaks only the sentences that pass the check. If an answer cannot be verified, it says so instead of guessing.
 
 Built by **Akriti Sengar** and **Bhawna Rani** for the Gnani AI challenge.
@@ -78,17 +77,14 @@ tests/            offline unit tests
 results/          evaluation outputs
 assets/           images used by the app
 ```
-=======
 Yojana Sahayak is a voice-first, evidence-grounded AI information assistant for Indian government welfare schemes. It enables citizens to ask questions by voice or text in **Hindi** or **English**, retrieves official government scheme documents, generates concise factual answers, and runs sentence-level Natural Language Inference (NLI) verification before speaking the response. 
 
 If any part of an answer cannot be verified against official source documents, the system refuses to guess, highlights unsupported claims in the UI, and never speaks unverified facts aloud.
 
 ---
->>>>>>> Stashed changes
 
 ## 🌟 Key Features
 
-<<<<<<< Updated upstream
 1. Use Python 3.11 or 3.12 and install the requirements:
    ```
    pip install -r requirements.txt
@@ -123,15 +119,7 @@ Note: Groq's free Developer access no longer includes Llama 3.3 70B. Check which
 - Scheme coverage is limited to the records in `data/`. Questions outside that coverage should return the safe fallback, not a guess.
 - The verifier is an NLI model. It can make mistakes, especially on Hindi sentences and on numbers.
 
-## Team
 
-- Akriti Sengar
-- Bhawna Rani
-
-## License
-
-MIT. See [LICENSE](LICENSE).
-=======
 - **🎙️ Voice-First Bilingual Interface**: Speak naturally in Hindi or English using integrated voice recording powered by **Gnani Prisma v3.0** speech-to-text.
 - **🔍 Grounded Retrieval (RAG)**: Multilingual semantic search across 20 official welfare schemes using `intfloat/multilingual-e5-base` embeddings and **FAISS** index.
 - **🛡️ Sentence-Level NLI Verification**: Uses `mDeBERTa-v3` cross-encoder NLI to verify every sentence. Evaluates groundedness and flags statements as *Supported*, *Unsupported*, or *Contradicted*.
@@ -374,8 +362,13 @@ python -m src.ingest && python -m src.retrieve
 The retrieval engine automatically detects corpus signature mismatches and rebuilds the index safely.
 
 ---
+## Team
 
-## 📜 License & Disclaimer
+- Akriti Sengar
+- Bhawna Rani
+
+##  License & Disclaimer
+
+MIT. See [LICENSE](LICENSE).
 
 Yojana Sahayak is an educational and informational research prototype developed for welfare awareness. It is not an official government service. Users should confirm all rules and formal eligibility with the relevant ministry portals linked in the app's evidence panel.
->>>>>>> Stashed changes
