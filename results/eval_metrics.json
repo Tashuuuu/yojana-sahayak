@@ -1,25 +1,25 @@
 {
-  "dry_run": true,
+  "dry_run": false,
   "n_questions": 40,
   "n_errors": 0,
   "n_answerable": 30,
   "n_unanswerable": 10,
   "hit_at_3": 1.0,
   "mrr_at_3": 0.961,
-  "refusal_correct": 4,
+  "refusal_correct": 10,
   "refusal_total": 10,
-  "false_refusals_on_answerable": 5,
+  "false_refusals_on_answerable": 7,
   "mean_groundedness_of_answered": 1.0,
   "status_counts": {
-    "verified": 31,
+    "verified": 23,
     "partial": 0,
-    "refused": 9
+    "refused": 17
   },
   "median_seconds": {
-    "t_retrieve": 0.018,
-    "t_generate": 0.0,
-    "t_verify": 8.015,
-    "t_total": 8.051
+    "t_retrieve": 0.065,
+    "t_generate": 0.657,
+    "t_verify": 17.316,
+    "t_total": 18.32
   },
   "note": "Human correctness and held-out verifier precision/recall require separate human labels."
 }
